@@ -1,41 +1,74 @@
 import type { InferSelectModel } from "drizzle-orm";
-import type { clickEvents, linkItems, profiles } from "@/lib/db/schema";
+import type {
+	expenses,
+	leases,
+	maintenanceRequests,
+	messages,
+	owners,
+	payments,
+	properties,
+	tenants,
+	units,
+	vehicles,
+	vendors,
+} from "@/lib/db/schema";
 
-export type Profile = InferSelectModel<typeof profiles>;
-export type LinkItem = InferSelectModel<typeof linkItems>;
-export type ClickEvent = InferSelectModel<typeof clickEvents>;
+// ── Drizzle-inferred row types ─────────────────────────────────────────────────
+export type Owner = InferSelectModel<typeof owners>;
+export type Property = InferSelectModel<typeof properties>;
+export type Unit = InferSelectModel<typeof units>;
+export type Tenant = InferSelectModel<typeof tenants>;
+export type Vehicle = InferSelectModel<typeof vehicles>;
+export type Lease = InferSelectModel<typeof leases>;
+export type Payment = InferSelectModel<typeof payments>;
+export type MaintenanceRequest = InferSelectModel<typeof maintenanceRequests>;
+export type Vendor = InferSelectModel<typeof vendors>;
+export type Expense = InferSelectModel<typeof expenses>;
+export type Message = InferSelectModel<typeof messages>;
 
-export type LinkItemType = "link" | "header" | "divider";
+// ── Domain enums ───────────────────────────────────────────────────────────────
+export type SubscriptionTier = "starter" | "growth" | "portfolio";
+export type PropertyType = "single_family" | "multi_unit" | "condo" | "townhouse";
+export type LeaseStatus = "active" | "expiring_soon" | "month_to_month" | "expired";
+export type LeaseRenewalStatus = "in_progress" | "offered" | "signed" | "not_renewing";
+export type MaintenanceCategory =
+	| "Plumbing"
+	| "Electrical"
+	| "HVAC"
+	| "Appliance"
+	| "Structural"
+	| "Pest"
+	| "Other";
+export type MaintenanceUrgency = "Emergency" | "Urgent" | "Routine";
+export type MaintenanceStatus = "received" | "assigned" | "in_progress" | "scheduled" | "resolved";
+export type PaymentStatus = "pending" | "paid" | "late" | "partial" | "failed";
+export type PaymentMethod = "ach" | "card" | "cash" | "check" | "zelle" | "venmo" | "other";
+export type ExpenseCategory =
+	| "Maintenance/Repair"
+	| "Mortgage"
+	| "Insurance"
+	| "Property Tax"
+	| "Utilities"
+	| "Landscaping"
+	| "Pest Control"
+	| "Management Fee"
+	| "Capital Improvement"
+	| "Other";
+export type MessageSenderType = "owner" | "tenant";
+export type VendorTrade =
+	| "Plumber"
+	| "Electrician"
+	| "HVAC"
+	| "Handyman"
+	| "Pest Control"
+	| "Landscaping"
+	| "Other";
 
-export type Theme = "minimal" | "dark" | "colorful" | "professional";
-
-// API response types
-export interface ProfileWithLinks {
-	profile: Profile;
-	links: LinkItem[];
+// ── Composite API response types ───────────────────────────────────────────────
+export interface UnitWithTenants extends Unit {
+	tenants: Tenant[];
 }
 
-// Editor state (client-side)
-export interface EditorState {
-	displayName: string;
-	bio: string;
-	avatarUrl: string;
-	theme: Theme;
-	links: LinkItem[];
-	isDirty: boolean;
-	isSaving: boolean;
-}
-
-// Theme component props
-export interface ThemeProps {
-	displayName: string;
-	bio: string;
-	avatarUrl: string;
-	links: Array<{
-		id: string;
-		type: "link" | "header" | "divider";
-		title: string;
-		url: string;
-	}>;
-	isPreview?: boolean;
+export interface PropertyWithUnits extends Property {
+	units: UnitWithTenants[];
 }

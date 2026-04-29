@@ -1,806 +1,392 @@
-# Product Requirements Document: Link-in-Bio Page Builder
-
-## 1. Executive Summary
-
-Link-in-Bio Page Builder is a self-hosted, multi-user Linktree alternative that enables users to create a personal landing page with their name, bio, avatar, and a curated list of links. Users select from layout-varying visual themes, receive a shareable public URL based on their chosen slug (e.g., `/cole`), and access a dedicated analytics dashboard tracking clicks per link over time.
-
-The application is built as a full-stack Next.js app deployed on Vercel, backed by Neon serverless Postgres with Neon Auth for authentication. The editor features a live preview with side-by-side layout on desktop and a toggle mode on mobile, with full drag-and-drop link reordering. Public pages are server-rendered for optimal SEO and social sharing.
-
-**MVP Goal:** Deliver a fully functional, production-ready link-in-bio platform across 4 sequential phases — from profile editing through theming, public URLs with SEO, and click analytics — with comprehensive E2E testing validating every user journey.
-
----
-
-## 2. Mission
-
-**Mission Statement:** Provide creators and professionals with a beautiful, self-hosted link-in-bio page they fully control — no vendor lock-in, no premium paywalls for basic features, and complete ownership of their data and analytics.
-
-**Core Principles:**
-
-1. **Simplicity first** — The editor should be intuitive enough that a user can create and publish their page in under 2 minutes.
-2. **Visual quality** — Public pages should look polished and professional out of the box, rivaling paid alternatives.
-3. **Performance** — Server-rendered public pages load fast, score well on Lighthouse, and render correctly for social media crawlers.
-4. **Self-service** — No admin intervention needed. Users sign up, build, publish, and track analytics independently.
-5. **Test-driven confidence** — Every user journey is validated with E2E tests using agent-browser. No feature ships without comprehensive test coverage.
-
----
-
-## 3. Target Users
-
-### Primary Persona: Content Creators & Professionals
-
-- **Who:** Social media creators, freelancers, small business owners, developers, designers — anyone who needs a single link to share across platforms.
-- **Technical comfort:** Low to medium. They can fill out forms and pick themes but shouldn't need to write code or manage infrastructure.
-- **Key needs:**
-  - A single URL to put in their Instagram/TikTok/Twitter bio
-  - A page that looks professional without design skills
-  - Knowing which links get clicked and when
-  - Ability to quickly update links as their content/projects change
-
-### Secondary Persona: Self-Hosters / Developers
-
-- **Who:** Developers who want to run their own Linktree alternative rather than depend on a SaaS.
-- **Technical comfort:** High. They'll deploy to Vercel, configure Neon, and potentially customize themes.
-- **Key needs:**
-  - Full data ownership
-  - Open-source codebase they can fork and extend
-  - Clean, well-structured code they can understand and modify
-
----
-
-## 4. MVP Scope
-
-### In Scope
-
-**Core Functionality:**
-- ✅ User registration with username/slug selection
-- ✅ Email/password authentication
-- ✅ Google OAuth authentication
-- ✅ Profile editor (name, bio, avatar URL)
-- ✅ Link management (add, remove, reorder via drag-and-drop)
-- ✅ Header and divider items between links
-- ✅ Live preview alongside editor
-- ✅ 4 layout-varying themes with instant preview
-- ✅ Slug-based public pages (`/<username>`)
-- ✅ OG meta tags for social sharing
-- ✅ Click tracking per link with timestamps
-- ✅ Analytics dashboard with click counts and time-series charts
-- ✅ Marketing landing page at `/`
-
-**Technical:**
-- ✅ Server-side rendering for public pages
-- ✅ Responsive design (mobile-first)
-- ✅ TypeScript strict mode throughout
-- ✅ Biome for linting and formatting
-- ✅ Vitest for unit testing
-- ✅ agent-browser for E2E testing of all user journeys
-- ✅ Basic rate limiting on API routes
-- ✅ Explicit save button (no auto-save)
-
-**Deployment:**
-- ✅ Vercel deployment
-- ✅ Neon serverless Postgres
-- ✅ Neon Auth integration
-- ✅ Environment-based configuration
-
-### Out of Scope
-
-- ❌ Admin panel / moderation tools
-- ❌ File upload for avatars (URL-only for MVP)
-- ❌ Custom domains per user
-- ❌ Embed support (YouTube, Spotify, etc.)
-- ❌ Monetization features (tipping, paid links)
-- ❌ Email notifications / transactional emails
-- ❌ Auto-save / draft vs published states
-- ❌ Link scheduling (show/hide by date)
-- ❌ Geographic analytics (IP-based location data)
-- ❌ Referrer tracking
-- ❌ Custom CSS / theme editor per user
-- ❌ Team/organization accounts
-- ❌ API access for third-party integrations
-- ❌ Mobile app
-- ❌ Bot protection beyond basic rate limiting
-
----
-
-## 5. User Stories
-
-### Registration & Authentication
-
-**US-1:** As a new user, I want to sign up with my email and choose a unique username, so that I get a personal URL like `/cole` for my link page.
-> *Example: User visits `/`, clicks "Get Started", enters name, email, password, and desired slug `cole`. System checks slug availability in real-time. On success, user lands on the editor.*
-
-**US-2:** As a returning user, I want to log in with my email/password or Google account, so that I can quickly access my editor.
-> *Example: User clicks "Sign In", chooses "Continue with Google", authenticates via OAuth, and is redirected to their editor dashboard.*
-
-### Profile Editing
-
-**US-3:** As a logged-in user, I want to edit my name, bio, and avatar URL with a live preview, so that I can see exactly how my page will look before saving.
-> *Example: User types in the bio field "Designer & coffee enthusiast" and the preview panel on the right instantly updates to show the new bio text.*
-
-**US-4:** As a logged-in user, I want to add, remove, and reorder links using drag-and-drop, so that I can organize my page the way I want.
-> *Example: User has 5 links. They grab the drag handle on "My Portfolio" and drag it from position 4 to position 1. The preview updates immediately. They click "Save" to persist the change.*
-
-**US-5:** As a logged-in user, I want to add section headers and dividers between my links, so that I can visually group related links.
-> *Example: User adds a header "Social Media" above their Twitter and Instagram links, and a divider before their "Projects" section.*
-
-### Themes
-
-**US-6:** As a logged-in user, I want to pick from 4 visual themes and see the result instantly in the preview, so that I can choose the look that best represents me.
-> *Example: User clicks the "Colorful" theme thumbnail. The preview immediately switches to a vibrant gradient background with rounded, colorful link buttons. They try "Professional" next — the preview shifts to a clean, muted layout with serif typography.*
-
-### Public Pages
-
-**US-7:** As a visitor, I want to view someone's link page at their public URL and click their links, so that I can find their content.
-> *Example: Visitor opens `example.com/cole` in their browser. They see Cole's avatar, bio, and list of links rendered with the "Dark" theme. They click "My YouTube Channel" and are redirected to YouTube.*
-
-### Analytics
-
-**US-8:** As a logged-in user, I want to see how many times each of my links has been clicked and view click trends over time, so that I can understand what content resonates with my audience.
-> *Example: User navigates to their analytics dashboard. They see a bar chart showing "YouTube: 342 clicks, Portfolio: 128 clicks, Twitter: 89 clicks" and a line chart showing daily clicks over the past 30 days.*
-
----
-
-## 6. Core Architecture & Patterns
-
-### High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                        Vercel                           │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │                   Next.js App                     │  │
-│  │                                                   │  │
-│  │  ┌─────────────┐  ┌──────────┐  ┌─────────────┐  │  │
-│  │  │  SSR Public  │  │   API    │  │  SPA Editor  │  │  │
-│  │  │   Pages      │  │  Routes  │  │  + Dashboard │  │  │
-│  │  │  /<slug>     │  │ /api/*   │  │  /editor     │  │  │
-│  │  └─────────────┘  └──────────┘  └─────────────┘  │  │
-│  │                        │                          │  │
-│  └────────────────────────┼──────────────────────────┘  │
-│                           │                             │
-└───────────────────────────┼─────────────────────────────┘
-                            │
-                  ┌─────────┴─────────┐
-                  │   Neon Postgres   │
-                  │  + Neon Auth      │
-                  │  (Serverless)     │
-                  └───────────────────┘
-```
-
-### Directory Structure
-
-```
-link-in-bio-page-builder/
-├── src/
-│   ├── app/                          # Next.js App Router
-│   │   ├── (marketing)/              # Marketing/landing route group
-│   │   │   └── page.tsx              # Landing page at /
-│   │   ├── (auth)/                   # Auth route group
-│   │   │   ├── login/page.tsx
-│   │   │   └── signup/page.tsx
-│   │   ├── (dashboard)/              # Authenticated route group
-│   │   │   ├── editor/page.tsx       # Profile editor + live preview
-│   │   │   ├── analytics/page.tsx    # Analytics dashboard
-│   │   │   └── settings/page.tsx     # Account settings (slug change, etc.)
-│   │   ├── [slug]/page.tsx           # Public profile pages (SSR)
-│   │   ├── api/
-│   │   │   ├── auth/[...all]/route.ts  # Neon Auth handlers
-│   │   │   ├── profile/route.ts      # Profile CRUD
-│   │   │   ├── links/route.ts        # Link management
-│   │   │   ├── links/reorder/route.ts
-│   │   │   ├── click/route.ts        # Click tracking endpoint
-│   │   │   └── analytics/route.ts    # Analytics data
-│   │   ├── layout.tsx                # Root layout
-│   │   └── globals.css
-│   ├── components/
-│   │   ├── ui/                       # shadcn/ui components
-│   │   ├── editor/                   # Editor-specific components
-│   │   │   ├── profile-form.tsx
-│   │   │   ├── link-list.tsx
-│   │   │   ├── link-item.tsx
-│   │   │   ├── add-link-dialog.tsx
-│   │   │   └── theme-picker.tsx
-│   │   ├── preview/                  # Live preview components
-│   │   │   └── preview-panel.tsx
-│   │   ├── themes/                   # Theme layout components
-│   │   │   ├── minimal.tsx
-│   │   │   ├── dark.tsx
-│   │   │   ├── colorful.tsx
-│   │   │   └── professional.tsx
-│   │   ├── analytics/                # Analytics components
-│   │   │   ├── click-chart.tsx
-│   │   │   ├── top-links.tsx
-│   │   │   └── time-series.tsx
-│   │   └── marketing/                # Landing page components
-│   │       ├── hero.tsx
-│   │       └── features.tsx
-│   ├── lib/
-│   │   ├── auth.ts                   # Neon Auth server instance
-│   │   ├── db/
-│   │   │   ├── index.ts              # Drizzle client
-│   │   │   ├── schema.ts             # Drizzle schema definitions
-│   │   │   └── migrations/           # Drizzle migrations
-│   │   ├── rate-limit.ts             # Rate limiting utility
-│   │   └── utils.ts                  # Shared utilities
-│   ├── hooks/                        # Custom React hooks
-│   │   ├── use-profile.ts
-│   │   └── use-analytics.ts
-│   └── types/                        # Shared TypeScript types
-│       └── index.ts
-├── tests/
-│   ├── unit/                         # Vitest unit tests
-│   │   ├── lib/
-│   │   └── components/
-│   └── e2e/                          # agent-browser E2E tests
-│       ├── auth.test.ts
-│       ├── editor.test.ts
-│       ├── public-page.test.ts
-│       └── analytics.test.ts
-├── public/                           # Static assets
-├── drizzle.config.ts                 # Drizzle configuration
-├── biome.json                        # Biome linter/formatter config
-├── next.config.ts                    # Next.js configuration
-├── tailwind.config.ts
-├── tsconfig.json
-├── vitest.config.ts
-└── package.json
-```
-
-### Key Design Patterns
-
-1. **Route Groups** — Use Next.js route groups `(marketing)`, `(auth)`, `(dashboard)` to organize layouts without affecting URL structure.
-2. **Server Components by default** — All pages and layouts are React Server Components unless they need interactivity. Client Components are used only in the editor, theme picker, and analytics charts.
-3. **Server Actions for mutations** — Use Next.js Server Actions for profile saves, link CRUD, and settings changes. API routes for click tracking (called from public pages) and analytics data fetching.
-4. **Optimistic UI** — The editor preview updates instantly on the client; the save button persists to the database.
-5. **SSR for public pages** — The `[slug]` dynamic route fetches profile data server-side and renders the full HTML with OG meta tags.
-
----
-
-## 7. Features
-
-### 7.1 Marketing Landing Page
-
-**Route:** `/`
-
-A public homepage that explains the product and drives signups.
-
-- Hero section with tagline, description, and CTA buttons ("Get Started" / "Sign In")
-- Brief feature highlights (themes, analytics, custom URL)
-- Example preview showing what a link page looks like
-- Footer with minimal links
-
-### 7.2 Authentication
-
-**Routes:** `/login`, `/signup`
-
-Powered by Neon Auth (built on Better Auth).
-
-- **Signup flow:**
-  1. User enters display name, email, password, and desired username/slug
-  2. Real-time slug availability check (debounced API call)
-  3. Slug validation: lowercase alphanumeric + hyphens, 3-30 characters, no reserved words
-  4. On success → redirect to `/editor`
-- **Login flow:**
-  1. Email/password form OR "Continue with Google" button
-  2. On success → redirect to `/editor`
-- **Reserved slugs:** `login`, `signup`, `editor`, `analytics`, `settings`, `api`, `admin`, `about`, `help`, etc.
-
-### 7.3 Profile Editor + Live Preview
-
-**Route:** `/editor`
-
-The core editing experience for building a link page.
-
-**Editor Panel (left side on desktop):**
-- **Profile section:**
-  - Display name (text input, max 50 chars)
-  - Bio (textarea, max 160 chars, with character counter)
-  - Avatar URL (text input with URL validation, small preview thumbnail)
-- **Links section:**
-  - List of current links with drag handles (dnd-kit)
-  - Each link item shows: drag handle, title, URL, delete button
-  - "Add Link" button opens inline form (title + URL fields)
-  - "Add Header" button adds a text header item
-  - "Add Divider" button adds a visual divider item
-  - Items are sortable via drag-and-drop
-- **Save button** at the bottom — disabled when no changes, shows loading state during save, success/error feedback via toast notification
-
-**Preview Panel (right side on desktop):**
-- Renders the public page exactly as it will appear
-- Updates in real-time as the user types/reorders (client-side state, not DB)
-- Displayed inside a phone-frame mockup for context
-- Shows the currently selected theme
-
-**Layout Modes:**
-- **Desktop (≥1024px):** Side-by-side with resizable panels. Toggle buttons in toolbar to: show both panels, show editor only, show preview only.
-- **Mobile (<1024px):** Tab toggle between "Edit" and "Preview" views.
-
-### 7.4 Theme System
-
-**Accessible from:** Theme picker in the editor (above or within the editor panel)
-
-4 themes that vary in both visual style and layout structure:
-
-| Theme | Vibe | Layout Notes |
-|---|---|---|
-| **Minimal** | Clean, white/light gray, sans-serif, lots of whitespace | Centered single-column, simple rectangular link buttons, small avatar |
-| **Dark** | Dark backgrounds, light text, neon/accent colors, modern feel | Centered column, rounded pill-shaped link buttons, larger avatar with glow effect |
-| **Colorful** | Vibrant gradients, playful, rounded shapes, bold typography | Wider card-based links, avatar with colored border ring, gradient background |
-| **Professional** | Muted tones, serif headings, structured, business-card feel | Two-column layout on desktop (avatar/bio left, links right), subtle shadows, traditional buttons |
-
-**Theme Picker UI:**
-- Horizontal row of theme thumbnail cards
-- Clicking a theme instantly updates the preview panel
-- Selected theme is visually highlighted
-- Theme selection is saved with the profile
-
-### 7.5 Public Pages + SEO
-
-**Route:** `/[slug]` (dynamic, server-rendered)
-
-- Fetches user profile, links, and theme from the database at request time
-- Renders the full page server-side with the selected theme component
-- Injects OG meta tags into `<head>`:
-  - `og:title` → User's display name
-  - `og:description` → User's bio
-  - `og:image` → User's avatar URL (or a generated fallback)
-  - `og:url` → Full canonical URL
-  - `twitter:card` → `summary`
-- Each link is a clickable `<a>` tag that:
-  1. Fires a click-tracking request to `/api/click` (via `navigator.sendBeacon` or fetch)
-  2. Then navigates to the target URL
-- Returns 404 for non-existent slugs with a friendly "Page not found" message
-
-### 7.6 Click Analytics
-
-**Tracking endpoint:** `POST /api/click`
-
-- Accepts: `{ linkId: string }`
-- Records: link ID, timestamp, (IP hash for rate limiting — not stored for analytics)
-- Rate limited: max 1 click per link per IP per 10 seconds (prevent spam)
-
-**Dashboard route:** `/analytics`
-
-- **Summary cards:** Total clicks (all time), clicks this week, number of active links
-- **Top links table:** Ranked list of links by total clicks, showing title, URL, click count
-- **Time-series chart:** Line chart showing total clicks per day over the last 30 days
-  - Toggle between 7-day / 30-day / 90-day views
-  - Uses a lightweight chart library (e.g., Recharts, which works well with shadcn)
-- **Per-link breakdown:** Expandable rows in the top links table showing that link's daily clicks
-
----
-
-## 8. Technology Stack
-
-### Core Framework
-| Technology | Version | Purpose |
-|---|---|---|
-| **Next.js** | 15.x | Full-stack React framework (App Router, SSR, API Routes) |
-| **React** | 19.x | UI library |
-| **TypeScript** | 5.x | Type safety (strict mode) |
-
-### Styling & UI
-| Technology | Purpose |
-|---|---|
-| **Tailwind CSS** 4.x | Utility-first CSS framework |
-| **shadcn/ui** | Accessible, customizable component library |
-| **CSS Transitions** | Animations (no extra motion libraries) |
-
-### Database & Auth
-| Technology | Purpose |
-|---|---|
-| **Neon** | Serverless Postgres (database hosting) |
-| **Neon Auth** | Managed authentication (Better Auth-based) |
-| **@neondatabase/auth** | Neon Auth SDK for Next.js |
-| **Drizzle ORM** | Type-safe database queries and migrations |
-| **drizzle-kit** | Schema migration tooling |
-
-### Key Libraries
-| Library | Purpose |
-|---|---|
-| **@dnd-kit/core** + **@dnd-kit/sortable** | Drag-and-drop link reordering |
-| **Recharts** | Charts for analytics dashboard |
-| **zod** | Runtime schema validation (forms, API inputs) |
-
-### Dev Tooling
-| Tool | Purpose |
-|---|---|
-| **Biome** | Linting + formatting (replaces ESLint + Prettier) |
-| **Vitest** | Unit testing |
-| **agent-browser** | E2E testing (Playwright-based CLI) |
-
-### Deployment
-| Service | Purpose |
-|---|---|
-| **Vercel** | Hosting, CI/CD, edge functions |
-| **Neon** | Managed Postgres (serverless, auto-scaling) |
-
----
-
-## 9. Security & Configuration
-
-### Authentication & Authorization
-
-- **Neon Auth** handles all authentication flows:
-  - Email/password registration and login
-  - Google OAuth (using Neon Auth's built-in Google credentials for dev, custom credentials for production)
-  - Session management via signed cookies (cached for 5 minutes by default)
-- **Authorization:** Middleware protects `/editor`, `/analytics`, `/settings` routes — redirects to `/login` if unauthenticated
-- **Data isolation:** All queries filter by the authenticated user's ID. Users can only read/write their own profile and links.
-
-### Rate Limiting
-
-- **API routes:** Simple in-memory rate limiting (or Vercel KV if needed)
-  - `/api/click`: 60 requests/minute per IP
-  - `/api/profile`, `/api/links`: 30 requests/minute per user
-  - `/api/auth/*`: 10 requests/minute per IP (login/signup)
-- **Click deduplication:** Ignore duplicate clicks on the same link from the same IP within 10 seconds
-
-### Configuration (Environment Variables)
-
-```env
-# Neon Database
-DATABASE_URL=                    # Neon Postgres connection string
-
-# Neon Auth
-NEON_AUTH_BASE_URL=              # Neon Auth endpoint URL
-NEON_AUTH_COOKIE_SECRET=         # Secret for signing session cookies
-
-# Google OAuth (production)
-GOOGLE_CLIENT_ID=                # Google OAuth client ID
-GOOGLE_CLIENT_SECRET=            # Google OAuth client secret
-
-# App
-NEXT_PUBLIC_APP_URL=             # Public app URL (e.g., https://yourdomain.com)
-```
-
-### Security Scope
-
-**In scope:**
-- ✅ Input sanitization (XSS prevention on bio, link titles/URLs)
-- ✅ URL validation for links (must be valid HTTP/HTTPS URLs)
-- ✅ Slug validation (alphanumeric + hyphens only)
-- ✅ CSRF protection (built into Neon Auth / Next.js)
-- ✅ Rate limiting on all API endpoints
-
-**Out of scope for MVP:**
-- ❌ Content moderation / link scanning
-- ❌ Two-factor authentication
-- ❌ IP allowlisting
-- ❌ Advanced bot protection (CAPTCHA, etc.)
-
----
-
-## 10. Database Schema
-
-### Tables
-
-```sql
--- Users table is managed by Neon Auth (neon_auth schema)
--- It provides: id, email, name, image, created_at, updated_at
-
--- Profiles (extends Neon Auth user)
-CREATE TABLE profiles (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id       TEXT NOT NULL UNIQUE REFERENCES neon_auth.users(id) ON DELETE CASCADE,
-  slug          TEXT NOT NULL UNIQUE,
-  display_name  TEXT NOT NULL DEFAULT '',
-  bio           TEXT NOT NULL DEFAULT '',
-  avatar_url    TEXT NOT NULL DEFAULT '',
-  theme         TEXT NOT NULL DEFAULT 'minimal',
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX idx_profiles_slug ON profiles(slug);
-CREATE INDEX idx_profiles_user_id ON profiles(user_id);
-
--- Link items (links, headers, dividers)
-CREATE TABLE link_items (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  type          TEXT NOT NULL DEFAULT 'link',  -- 'link' | 'header' | 'divider'
-  title         TEXT NOT NULL DEFAULT '',
-  url           TEXT NOT NULL DEFAULT '',       -- empty for headers/dividers
-  sort_order    INTEGER NOT NULL DEFAULT 0,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_link_items_profile_id ON link_items(profile_id);
-
--- Click events
-CREATE TABLE click_events (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  link_item_id  UUID NOT NULL REFERENCES link_items(id) ON DELETE CASCADE,
-  clicked_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_click_events_link_item_id ON click_events(link_item_id);
-CREATE INDEX idx_click_events_clicked_at ON click_events(clicked_at);
-```
-
-### Drizzle Schema (TypeScript)
-
-The above SQL will be represented as Drizzle schema definitions in `src/lib/db/schema.ts`, using `pgTable`, with proper TypeScript types inferred via `InferSelectModel` and `InferInsertModel`.
-
----
-
-## 11. API Specification
-
-### Profile
-
-**GET `/api/profile`** — Get current user's profile
-- Auth: Required
-- Response: `{ profile: Profile, links: LinkItem[] }`
-
-**PUT `/api/profile`** — Update current user's profile
-- Auth: Required
-- Body: `{ displayName: string, bio: string, avatarUrl: string, theme: string }`
-- Validation: Zod schema
-- Response: `{ profile: Profile }`
-
-### Links
-
-**POST `/api/links`** — Add a new link item
-- Auth: Required
-- Body: `{ type: 'link' | 'header' | 'divider', title?: string, url?: string }`
-- Response: `{ link: LinkItem }`
-
-**DELETE `/api/links/[id]`** — Remove a link item
-- Auth: Required
-- Response: `{ success: true }`
-
-**PUT `/api/links/reorder`** — Reorder all link items
-- Auth: Required
-- Body: `{ items: { id: string, sortOrder: number }[] }`
-- Response: `{ success: true }`
-
-### Click Tracking
-
-**POST `/api/click`** — Record a link click (called from public pages)
-- Auth: None (public)
-- Body: `{ linkId: string }`
-- Rate limited: 60/min per IP, 10-second dedup per link per IP
-- Response: `{ success: true }`
-
-### Analytics
-
-**GET `/api/analytics`** — Get analytics for current user's links
-- Auth: Required
-- Query params: `?period=7d|30d|90d`
-- Response:
-```json
-{
-  "summary": {
-    "totalClicks": 1234,
-    "clicksThisWeek": 89,
-    "activeLinks": 8
-  },
-  "topLinks": [
-    { "id": "...", "title": "YouTube", "url": "...", "clicks": 342 }
-  ],
-  "timeSeries": [
-    { "date": "2026-02-19", "clicks": 45 },
-    { "date": "2026-02-20", "clicks": 52 }
-  ]
-}
-```
-
-### Slug Availability
-
-**GET `/api/slug/check?slug=cole`** — Check if slug is available
-- Auth: None (used during signup)
-- Response: `{ available: boolean }`
-
----
-
-## 12. Success Criteria
-
-### MVP Success Definition
-
-The MVP is complete when a user can sign up, build a link page with a chosen theme, share their public URL, and view click analytics — all validated by passing E2E tests covering every user journey.
-
-### Functional Requirements
-
-- ✅ User can sign up with email/password and choose a unique slug
-- ✅ User can sign in with Google OAuth
-- ✅ User can edit display name, bio, and avatar URL
-- ✅ User can add, remove, and reorder links via drag-and-drop
-- ✅ User can add section headers and dividers
-- ✅ User can select from 4 themes with instant live preview
-- ✅ Editor shows side-by-side layout on desktop with toggle options
-- ✅ Editor shows toggle mode on mobile
-- ✅ Saving profile persists all changes to database
-- ✅ Public page at `/<slug>` renders with selected theme (SSR)
-- ✅ Public page includes correct OG meta tags
-- ✅ Clicking a link on the public page tracks the click
-- ✅ Analytics dashboard shows click counts per link
-- ✅ Analytics dashboard shows time-series chart (7d/30d/90d)
-- ✅ Marketing landing page exists at `/`
-- ✅ All protected routes redirect to login when unauthenticated
-- ✅ Rate limiting prevents abuse on API endpoints
-
-### Quality Indicators
-
-- TypeScript strict mode with zero type errors
-- Biome passes with zero lint/format warnings
-- Vitest unit test coverage on all utility functions and API logic
-- agent-browser E2E tests pass for every user journey
-- Lighthouse performance score ≥ 90 on public pages
-- All pages responsive from 320px to 1920px
-
-### User Experience Goals
-
-- Signup-to-published page in under 2 minutes
-- Theme switching feels instant (no loading states)
-- Drag-and-drop reordering is smooth and intuitive
-- Public page loads in under 1 second (server-rendered)
-
----
-
-## 13. Implementation Phases
-
-### Phase 1: Profile Editor + Live Preview
-
-**Goal:** Users can sign up, log in, and build their link page with a live preview.
-
-**Deliverables:**
-- ✅ Project scaffolding (Next.js + Tailwind + shadcn/ui + Biome + Vitest)
-- ✅ Neon database setup + Drizzle schema + migrations
-- ✅ Neon Auth integration (email/password + Google OAuth)
-- ✅ Signup page with slug selection and real-time availability check
-- ✅ Login page (email/password + Google OAuth)
-- ✅ Auth middleware protecting dashboard routes
-- ✅ Profile editor form (name, bio, avatar URL)
-- ✅ Link management (add, remove, reorder with dnd-kit)
-- ✅ Header and divider support
-- ✅ Live preview panel (default "Minimal" theme)
-- ✅ Side-by-side layout (desktop) with editor-only/preview-only toggles
-- ✅ Toggle mode (mobile)
-- ✅ Explicit save button with toast feedback
-- ✅ Unit tests for validation logic, API handlers
-- ✅ E2E tests: signup flow, login flow, profile editing, link CRUD, drag-and-drop reorder
-
-**Validation:**
-- User can sign up, add 5 links + 1 header + 1 divider, reorder them, save, refresh, and see persisted data
-- Preview updates in real-time without saving
-- All E2E tests pass via agent-browser
-
----
-
-### Phase 2: Theme System
-
-**Goal:** Users can choose from 4 distinct, layout-varying themes with instant preview.
-
-**Deliverables:**
-- ✅ 4 theme components: Minimal, Dark, Colorful, Professional
-- ✅ Each theme has its own layout structure and visual style
-- ✅ Theme picker UI with thumbnail previews
-- ✅ Instant theme switching in the live preview
-- ✅ Theme selection persisted to database
-- ✅ All themes responsive (320px – 1920px)
-- ✅ Smooth CSS transitions between themes
-- ✅ Unit tests for theme rendering logic
-- ✅ E2E tests: theme selection, preview updates, persistence after save and reload
-
-**Validation:**
-- Switching between all 4 themes updates the preview instantly
-- Theme persists after save → reload
-- Each theme looks correct and distinct on mobile and desktop
-- All E2E tests pass via agent-browser
-
----
-
-### Phase 3: Public URLs + SEO
-
-**Goal:** Each user gets a public page at `/<slug>` with proper SEO and social sharing support.
-
-**Deliverables:**
-- ✅ Dynamic `[slug]` route with server-side rendering
-- ✅ Public page renders profile + links with the selected theme
-- ✅ OG meta tags (`og:title`, `og:description`, `og:image`, `og:url`, `twitter:card`)
-- ✅ 404 handling for non-existent slugs
-- ✅ Reserved slug protection (prevent registration of system routes)
-- ✅ Marketing landing page at `/` (hero, features, CTAs)
-- ✅ Slug change in user settings
-- ✅ Canonical URL in `<head>`
-- ✅ Unit tests for slug validation, OG tag generation
-- ✅ E2E tests: public page rendering, correct theme display, OG tag verification, 404 page, landing page navigation, slug change flow
-
-**Validation:**
-- Visiting `/<slug>` renders the correct profile with the correct theme
-- Sharing the URL on social media shows correct preview (OG tags)
-- Non-existent slugs show a 404 page
-- Landing page loads and CTAs navigate correctly
-- All E2E tests pass via agent-browser
-
----
-
-### Phase 4: Click Analytics
-
-**Goal:** Track clicks on public page links and display analytics in a dashboard.
-
-**Deliverables:**
-- ✅ Click tracking endpoint (`POST /api/click`)
-- ✅ Click recording on public page link clicks (via `sendBeacon` or fetch)
-- ✅ Rate limiting on click endpoint (60/min per IP, 10-sec dedup)
-- ✅ Analytics API endpoint with period filtering
-- ✅ Analytics dashboard page (`/analytics`)
-- ✅ Summary cards (total clicks, this week, active links)
-- ✅ Top links table with click counts
-- ✅ Time-series line chart (7d / 30d / 90d toggle)
-- ✅ Per-link daily breakdown (expandable rows)
-- ✅ Unit tests for analytics aggregation queries, rate limiting logic
-- ✅ E2E tests: click tracking fires on public page, analytics dashboard shows correct data, period toggle works, chart renders
-
-**Validation:**
-- Clicking links on a public page increments the count
-- Analytics dashboard reflects clicks accurately
-- Time-series chart displays correctly for all period options
-- Rate limiting prevents click spam
-- All E2E tests pass via agent-browser
-
----
-
-## 14. Future Considerations
-
-### Post-MVP Enhancements
-- **File upload for avatars** — Use Vercel Blob or Cloudflare R2 for image storage
-- **Custom domains** — Allow users to point their own domain to their page
-- **Embed support** — YouTube, Spotify, SoundCloud embeds inline in the link list
-- **Auto-save with draft/publish** — Auto-save changes as draft, explicit publish to go live
-- **Link scheduling** — Show/hide links based on date ranges
-- **More themes** — Community-contributed themes, custom color overrides
-
-### Integration Opportunities
-- **Social login expansion** — GitHub, Twitter/X, Discord OAuth
-- **Analytics export** — CSV/JSON download of click data
-- **Webhook notifications** — Notify external services on click milestones
-- **API access** — Public API for programmatic profile management
-
-### Advanced Features
-- **Admin panel** — User management, content moderation, system stats
-- **A/B testing** — Test different link orders or themes for click optimization
-- **Rich analytics** — Referrer tracking, geographic data, device breakdown
-- **Custom CSS** — Per-user CSS overrides for advanced customization
-- **Team accounts** — Shared pages managed by multiple users
-
----
-
-## 15. Risks & Mitigations
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| **Neon Auth is relatively new** — Less community support and documentation compared to established auth solutions. | Medium | Neon Auth is built on Better Auth, which has extensive docs. Fall back to Better Auth docs when Neon-specific docs are sparse. Keep auth logic isolated so it can be swapped if needed. |
-| **Click tracking volume** — Popular pages could generate high write volume to the `click_events` table. | Medium | Use `navigator.sendBeacon` (non-blocking). Rate limit aggressively. Consider batching writes or a summary table for high-volume pages in a future phase. Neon's serverless auto-scaling helps absorb bursts. |
-| **Slug collisions with app routes** — User-chosen slugs could conflict with app routes like `/login` or `/api`. | High | Maintain a strict reserved-slugs list checked at signup. The `[slug]` catch-all route should be the lowest priority in Next.js routing (place it last). |
-| **Theme layout complexity** — 4 themes with different layouts is significantly more work than CSS-only themes. | Medium | Start with shared base components and have each theme compose them differently. Define a clear `ThemeProps` interface so all themes receive the same data. Build Minimal first as the reference, then diverge. |
-| **E2E test reliability** — Browser-based E2E tests can be flaky, especially with auth flows and drag-and-drop. | Medium | Use agent-browser's `wait` commands extensively. Isolate test data per run. For drag-and-drop, test the reorder API directly as a unit test and use E2E only for the happy path. |
-
----
-
-## 16. Appendix
-
-### Key Dependencies
-
-| Package | Docs |
-|---|---|
-| Next.js | https://nextjs.org/docs |
-| Tailwind CSS | https://tailwindcss.com/docs |
-| shadcn/ui | https://ui.shadcn.com |
-| Drizzle ORM | https://orm.drizzle.team/docs |
-| Neon | https://neon.com/docs |
-| Neon Auth | https://neon.com/docs/auth/overview |
-| dnd-kit | https://dndkit.com |
-| Recharts | https://recharts.org |
-| Zod | https://zod.dev |
-| Biome | https://biomejs.dev |
-| Vitest | https://vitest.dev |
-
-### Reference Implementations
-
-- [LinkStack](https://linkstack.org/) — Full-featured self-hosted Linktree alternative (PHP/Laravel)
-- [LittleLink-Server](https://github.com/techno-tim/littlelink-server) — Lightweight Node.js alternative
-- [LibreLinks](https://github.com/urdadx/librelinks) — Open-source Next.js link-in-bio tool
-- [OpenBento](https://github.com/syntax-syndicate/openbento-linkedin-bio-builder) — Bento-grid style bio page builder
+PRODUCT REQUIREMENTS DOCUMENT
+Groundwork
+Property Management Platform for the Independent Landlord
+
+Version
+1.0 — Draft
+Date
+March 2026
+Status
+For Review
+Target User
+Independent landlords managing 10–20 residential properties
+Platform
+Web (primary), Mobile-responsive (tenant portal)
+Stakeholders
+Product, Engineering, Design
+
+1. Product Overview
+Groundwork is a property management platform built specifically for the independent landlord — the owner of 10 to 20 properties who is too big to manage on spreadsheets and text messages but too small to justify an enterprise property management system that costs thousands of dollars a month and was designed for a 500-unit apartment complex.
+
+It gives the landlord one place to see every property, every tenant, every payment, every maintenance request, and every lease — and gives tenants one portal to pay rent, report issues, and communicate without needing the landlord's personal phone number.
+
+Groundwork is organized around six modules that work together as a single system: the Tenant Portal (rent payments, maintenance requests, communication), Lease Management (leases, renewals, alerts), Maintenance Tracker (requests, vendor dispatch, resolution), Expense & Income Ledger (per-property P&L), Tenant Records (profile, vehicles, documents), and the Owner Dashboard (portfolio-level view of everything).
+
+Who This Is For
+The owner of 12 rental properties who currently collects rent via Zelle, tracks leases in a folder on their desktop, texts tenants directly about repairs, keeps a notebook of which car belongs to which tenant, and has no idea which properties are actually profitable after expenses. Groundwork organizes all of it — without requiring them to become a software power user.
+
+2. Problem Statement
+2.1 How Small Landlords Operate Today
+The independent landlord with 10–20 properties operates across a tangle of personal tools never designed for property management:
+
+	•	Rent collection via Zelle, Venmo, Cash App, personal checks, or money orders — no payment history, no automated reminders, no receipts
+	•	Maintenance requests via text message — no record, no photo, no thread, no way to track whether something was actually fixed
+	•	Leases in a folder, a filing cabinet, or an email inbox — no alerts when leases expire, no version tracking, no digital signatures
+	•	Tenant information in a phone's contact list — move-in date, vehicle info, emergency contacts all living in the landlord's memory
+	•	Expenses tracked in a spreadsheet, a notes app, or not at all — no per-property income/expense view, no tax preparation clarity
+	•	Vendor relationships in a text history — no organized record of who fixed what, when, for how much
+
+2.2 What Goes Wrong
+	•	Late rent goes unnoticed for days because there is no system to flag it — the landlord only realizes when they check their bank account
+	•	Maintenance issues escalate because there is no follow-up system — a tenant texts once about a leak, gets no response, and the leak becomes a lawsuit
+	•	Leases expire and renew month-to-month by accident — the landlord loses leverage and the tenant loses clarity
+	•	The landlord has no idea which properties make money and which ones eat it — all income goes to the same account, all expenses are mixed
+	•	Parking disputes become tense because there is no record of who is authorized to park where — no vehicle documentation
+
+2.3 Why Existing Tools Don't Fit
+
+Tool
+What It Does
+Why It Doesn't Fit
+Buildium / AppFolio
+Enterprise property management — full accounting, maintenance, leasing, screening
+Built for 50–500+ units. $250–$1,500+/mo. Complex onboarding. Overkill for 10–20 properties.
+TurboTenant / Avail
+Free/low-cost tools for small landlords — basic rent collection and listings
+Thin feature set. No vendor management, no expense ledger depth, no vehicle records, weak maintenance workflow.
+Cozy (now Apartments.com)
+Rent collection, basic screening
+Primarily a listing/collection tool — no maintenance, no lease management, no communication hub.
+Spreadsheets + Zelle
+Whatever the landlord builds themselves
+No automation, no tenant-facing portal, no alerts, no audit trail, breaks at 10+ properties.
+
+3. User Personas
+
+Persona
+Who They Are
+Core Need
+Current Frustration
+The Owner / Landlord
+Individual or couple. 10–20 residential properties. Self-managed or lightly assisted. Has a day job or other business. Wants passive income to actually feel passive.
+See everything about every property in one place. Stop managing by text message. Know which properties are profitable.
+Spends evenings chasing rent, returning maintenance texts, and hunting for lease documents they know they saved somewhere.
+The Tenant
+Renting a single unit. Has a smartphone. Does not want to call or text the landlord directly for routine things. Wants confirmation that their payment was received and their request is being handled.
+Pay rent easily, submit requests without awkward texts, get updates without having to follow up.
+Sends a Venmo with no confirmation. Texts about a repair and hears nothing for days. Doesn't know when their lease expires.
+The Maintenance Vendor
+Plumber, electrician, HVAC tech, handyman. Works with multiple property owners. Needs clear job details and confirmed payment.
+Clear work order: what the issue is, where the property is, contact info, photos of the problem.
+Gets called with vague instructions, shows up to find the issue is different than described, invoices slowly.
+
+4. Feature Modules
+Groundwork is organized into six modules. All six are accessible from the owner dashboard. Tenants access a simplified portal containing only the modules relevant to them (rent, maintenance, messages, their profile).
+
+Module 1 — Tenant Portal
+The tenant-facing layer of the platform. Accessible via a unique link sent at move-in. Mobile-first design. No app download required — runs in any browser. Each tenant sees only their own unit and their own data.
+
+1.1 Rent Payment
+	•	System MUST allow tenants to pay rent online via ACH bank transfer (free) and debit/credit card (fee passed to tenant or absorbed by owner — owner-configurable)
+	•	System MUST send automated payment reminders: 5 days before due date, 1 day before due date, and on the due date if unpaid
+	•	System MUST send an instant payment confirmation receipt to the tenant via email and in-portal notification
+	•	System MUST flag a payment as late the day after the due date and notify the owner
+	•	System MUST display a tenant's full payment history: date, amount, method, status (paid / pending / late / partial)
+	•	System MUST support partial payments — owner can accept or decline partial payment per their policy, set at the property level
+	•	System MUST support recurring autopay — tenant can enroll to have rent auto-debited on the same day each month
+	•	System SHOULD support late fee application — owner configures a flat or percentage late fee that is automatically added after a grace period
+	•	System MUST generate a year-end payment summary for tenants (for rental assistance, tax, or housing application purposes)
+
+1.2 Maintenance Requests
+	•	System MUST allow tenants to submit a maintenance request with: written description, urgency level (Emergency / Urgent / Routine), category (Plumbing / Electrical / HVAC / Appliance / Structural / Pest / Other), and photo upload (up to 10 photos per request)
+	•	System MUST notify the owner immediately upon submission with the full request detail and photos
+	•	System MUST allow owners to update the request status: Received / Assigned to Vendor / In Progress / Scheduled (with date) / Resolved
+	•	System MUST notify the tenant of every status update automatically — no manual message required
+	•	System MUST allow two-way messaging within the request thread — tenant and owner can communicate in context without texting
+	•	System MUST flag Emergency requests distinctly and trigger an immediate push notification and email to the owner
+	•	System MUST keep a full request history per unit — every request, every update, every message, every photo, timestamped permanently
+	•	System SHOULD allow tenants to mark a request as resolved or reopen it if the issue returns
+
+1.3 Tenant Communication Hub
+	•	System MUST provide an in-portal messaging thread between tenant and owner — distinct from the maintenance request thread
+	•	System MUST allow owners to send broadcast messages to all tenants (e.g., 'Water will be shut off Thursday 9am–12pm for maintenance')
+	•	System MUST allow owners to send property-specific messages (e.g., to all tenants in a single building)
+	•	System MUST archive all messages with sender, timestamp, and read receipt
+	•	System SHOULD allow tenants to view important notices in a dedicated 'Notices' tab — lease renewal alerts, upcoming inspections, policy updates
+
+1.4 Tenant Profile & Documents
+	•	System MUST display the tenant's current lease summary: unit address, start date, end date, monthly rent amount, security deposit held
+	•	System MUST allow tenants to download their signed lease and any addenda from the portal
+	•	System SHOULD allow tenants to update their emergency contact information directly in the portal
+
+Module 2 — Lease Management
+Centralized management of all leases across the portfolio. No more hunting for a PDF in an email thread from 2 years ago.
+
+2.1 Lease Storage & Organization
+	•	System MUST allow owners to upload a signed lease PDF per tenant and attach it to the tenant record
+	•	System MUST extract and store key lease fields on upload (via form input or OCR-assisted extraction): tenant names, unit address, lease start date, lease end date, monthly rent, security deposit amount, late fee policy
+	•	System MUST display a lease status badge on every tenant record: Active / Expiring Soon (within 60 days) / Month-to-Month / Expired
+	•	System MUST support multiple active lease documents per tenant (original lease + addenda + renewals) in a versioned document history
+
+2.2 Renewal Alerts & Workflow
+	•	System MUST send the owner an alert at 90 days, 60 days, and 30 days before any lease expiration
+	•	System MUST display a 'Leases Expiring Soon' panel on the owner dashboard with a count and list of affected units
+	•	System SHOULD allow owners to mark a renewal as 'In Progress', 'Offered', 'Signed', or 'Not Renewing' — to track where each expiring lease stands
+	•	System SHOULD support digital lease renewal: owner generates a renewal addendum, sends it to the tenant via the portal, tenant signs electronically
+	•	System MUST flag any unit whose lease has expired with no renewal action taken — shown as a warning on the dashboard
+
+2.3 Digital Signatures
+	•	System SHOULD integrate with DocuSign or HelloSign for electronic lease signing — owner sends lease via platform, tenant signs digitally, signed copy stored automatically in tenant record
+	•	System MUST log all signature events: who signed, from what IP address, at what time — for legal audit trail
+
+Module 3 — Maintenance Tracker
+The owner-side view of all maintenance activity across the portfolio. Connects to the tenant-facing request system and extends it with vendor management and cost tracking.
+
+3.1 Request Management
+	•	System MUST display all open maintenance requests across all properties in a unified queue, sortable by: urgency, date submitted, property, status
+	•	System MUST allow the owner to filter requests by property, status, category, and date range
+	•	System MUST show a count of open Emergency and Urgent requests prominently on the dashboard — these cannot be missed
+	•	System MUST maintain a complete closed request archive per unit — useful for move-out inspections and dispute resolution
+
+3.2 Vendor Management
+	•	System MUST allow owners to build a vendor directory: vendor name, trade/category (Plumber, Electrician, HVAC, General Handyman, Pest Control, Landscaping, etc.), phone, email, typical rate, notes, preferred status flag
+	•	System MUST allow owners to assign a vendor to any open maintenance request directly from the request detail view
+	•	System MUST automatically send the assigned vendor a work order notification via email and SMS containing: property address, unit number, issue description, tenant contact name and phone, photos from the original request, and scheduled access window
+	•	System MUST allow owners to set a maintenance budget per request before dispatching a vendor
+	•	System MUST allow vendors to be rated after job completion — owner records a simple 1–5 star rating and optional note, stored in the vendor's profile
+	•	System SHOULD allow the owner to track vendor invoice amounts against each request — actual cost logged and attached to the request record
+
+3.3 Recurring Maintenance
+	•	System SHOULD allow owners to create recurring maintenance schedules: 'HVAC filter change — every 6 months — all units', 'Smoke detector check — annual — all properties'
+	•	System MUST send a reminder notification when a recurring maintenance task is due
+	•	System MUST log each completion of a recurring task with date and notes
+
+Module 4 — Expense & Income Ledger
+Per-property financial tracking. Not a full accounting suite — a clear, organized record of what each property brings in and costs, month by month.
+
+4.1 Income Tracking
+	•	System MUST automatically record every rent payment as income in the ledger for the corresponding property and month
+	•	System MUST allow owners to record other income per property: late fees collected, pet fees, parking fees, laundry income, application fees
+	•	System MUST display monthly and year-to-date income per property
+
+4.2 Expense Tracking
+	•	System MUST allow owners to log expenses per property with: amount, date, category (Maintenance/Repair, Mortgage, Insurance, Property Tax, Utilities, Landscaping, Pest Control, Management Fee, Capital Improvement, Other), vendor or payee name, notes, and receipt photo upload
+	•	System MUST auto-populate maintenance expenses from vendor invoices logged in the Maintenance Tracker — no double entry
+	•	System MUST display monthly and year-to-date expenses per property by category
+	•	System SHOULD display a running net operating income (income minus expenses) per property per month
+
+4.3 Portfolio View & Reporting
+	•	System MUST display a portfolio-level summary: total monthly income across all properties, total monthly expenses, net income
+	•	System MUST display a per-property P&L comparison: which properties are most profitable, which have the highest expense ratios
+	•	System MUST support date range filtering on all financial views: current month, last 3 months, year-to-date, custom range
+	•	System MUST support CSV export of all income and expense data — for tax preparation, accountant handoff, or personal records
+	•	System SHOULD generate a simple annual income/expense summary report per property in PDF format — formatted for tax season hand-off
+
+Module 5 — Tenant Records
+The complete profile for every tenant. Everything the landlord knows about a tenant — in one place, not spread across a phone, a filing cabinet, and a memory.
+
+5.1 Tenant Profile
+	•	System MUST store per-tenant: full legal name, date of birth, phone, email, move-in date, move-out date (if applicable), unit assigned, lease reference
+	•	System MUST allow owners to store emergency contact information: name, relationship, phone, email
+	•	System MUST allow owners to add internal notes per tenant — private, not visible to the tenant
+	•	System MUST display a tenant activity timeline: move-in, lease signings, payment history, maintenance requests, messages — all in one chronological view
+
+5.2 Vehicle Records
+	•	System MUST allow owners to record one or more vehicles per tenant: make, model, year, color, license plate number, state of registration
+	•	System MUST display all registered vehicles per unit on the tenant profile
+	•	System MUST allow owners to add a parking space or spot assignment per vehicle
+	•	System MUST allow owners to search or filter all vehicles across the portfolio by license plate — for parking enforcement and dispute resolution
+	•	System SHOULD send a reminder to the owner to verify vehicle information annually or at lease renewal
+	•	System SHOULD allow owners to flag a vehicle as unauthorized — for record-keeping during parking disputes
+
+5.3 Document Vault
+	•	System MUST allow owners to upload documents per tenant: signed lease (synced with Lease Management module), government ID copy, pet agreement, parking addendum, move-in inspection report, move-out inspection report, any written notices
+	•	System MUST display all documents in a clean list with filename, upload date, and document type tag
+	•	System MUST allow tenants to download documents shared with them by the owner from their portal
+
+5.4 Move-In / Move-Out Workflow
+	•	System MUST support a move-in checklist: owner records unit condition at move-in with notes and photos — stored against tenant record
+	•	System MUST support a move-out checklist: same format — allows direct comparison to move-in condition for security deposit decisions
+	•	System MUST track security deposit: amount collected, date collected, bank account held in (owner note), return amount, return date, deductions itemized
+
+Module 6 — Owner Dashboard
+The first screen the owner sees on login. A command center — not a data dump. Every number that matters, every alert that needs attention, every action that is overdue.
+
+6.1 Portfolio Snapshot
+	•	System MUST display at a glance: total units, occupied units, vacant units, occupancy rate
+	•	System MUST display current month rent collection status: total expected, total collected, total outstanding, number of late payments
+	•	System MUST display open maintenance request count by urgency: Emergency / Urgent / Routine — each a clickable link into the maintenance queue
+	•	System MUST display leases expiring within 60 days with unit addresses and days remaining
+
+6.2 Alert Feed
+	•	System MUST surface a prioritized alert feed: late payments, new maintenance requests, lease expiration warnings, overdue recurring maintenance tasks, unsigned renewal documents
+	•	System MUST allow owners to dismiss alerts individually or mark them as addressed
+	•	System MUST send a daily digest email to the owner each morning: summary of overnight activity, current outstanding items
+
+6.3 Property List View
+	•	System MUST display every property as a card with: address, tenant name, rent amount, last payment date, payment status, lease expiration date, open maintenance requests
+	•	System MUST allow the owner to click any property card to drill down into the full property detail: tenant profile, lease, payment history, maintenance history, expenses
+	•	System MUST support adding a new property and a new tenant with a guided setup flow
+
+5. Non-Functional Requirements
+
+Category
+Requirement
+Security
+All data encrypted at rest (AES-256) and in transit (TLS 1.3). Role-based access: owner sees everything; tenant sees only their unit and data. Two-factor authentication available for owner account. Payment data handled via Stripe — no raw card data stored on platform.
+Privacy
+Tenant personal data (ID, DOB, vehicle) stored securely, never shared with third parties. Owner can delete a tenant record after move-out, subject to a 7-year financial record retention minimum for tax compliance. Tenants can request a copy of their data.
+Mobile
+Tenant portal fully functional on mobile browser — no app download required. Owner dashboard mobile-responsive. Native iOS and Android apps are V2.
+Performance
+Dashboard load time: < 2 seconds. File upload (photos, PDFs): up to 25MB per file. Payment processing: Stripe webhook confirmation within 5 seconds of payment.
+Reliability
+99.9% uptime target. Automated database backups daily. Payment processing via Stripe — inherits Stripe's 99.99% uptime SLA.
+Notifications
+All critical notifications (late payment, emergency maintenance, lease expiration) delivered via both email and in-app. Owner can configure which notifications they receive via push vs. email. Daily digest email at 7am local time.
+Data export
+All data exportable by owner at any time: tenant list (CSV), payment history (CSV), expense ledger (CSV), lease documents (ZIP). No data lock-in.
+
+6. Technical Architecture
+6.1 Stack
+	•	Frontend: Next.js / React — owner dashboard and tenant portal in a single codebase, role-based routing
+	•	Backend: Python / FastAPI or Node.js / Express — REST API serving both dashboard and portal
+	•	Database: PostgreSQL — properties, units, tenants, leases, payments, maintenance requests, expenses, vehicles, documents
+	•	File storage: AWS S3 — lease PDFs, maintenance photos, receipt images, inspection photos
+	•	Payments: Stripe Connect — ACH and card processing, automatic late fee logic, payment webhooks, payout to owner bank account
+	•	Email / SMS: SendGrid (email), Twilio (SMS for vendor work order notifications and tenant payment reminders)
+	•	E-signature: DocuSign API or HelloSign API — lease signing workflow
+	•	Push notifications: Firebase Cloud Messaging — browser push and (V2) mobile push
+	•	Infrastructure: AWS ECS Fargate (API), RDS PostgreSQL, S3, CloudFront (CDN for static assets)
+
+6.2 Core Data Model
+
+Entity
+Key Fields
+Relationships
+Owner
+id, name, email, phone, subscription_tier, stripe_account_id
+Has many Properties
+Property
+id, owner_id, address, city, state, zip, property_type, purchase_date, mortgage_payment, notes
+Has many Units
+Unit
+id, property_id, unit_number, bedrooms, bathrooms, sqft, current_tenant_id
+Has one Tenant (current), many Leases
+Tenant
+id, unit_id, full_name, dob, phone, email, move_in_date, move_out_date, emergency_contact, notes
+Has many Vehicles, Documents, Payments, MaintenanceRequests
+Vehicle
+id, tenant_id, make, model, year, color, plate_number, plate_state, parking_spot, authorized_flag
+Belongs to Tenant
+Lease
+id, unit_id, tenant_id, start_date, end_date, monthly_rent, security_deposit, status, pdf_url, signed_at
+Belongs to Unit and Tenant
+Payment
+id, tenant_id, unit_id, amount, due_date, paid_date, method, status, stripe_payment_id, late_fee_amount
+Belongs to Tenant
+MaintenanceRequest
+id, unit_id, tenant_id, category, urgency, description, status, photos[], vendor_id, cost, created_at, resolved_at
+Belongs to Unit; assigned to Vendor
+Vendor
+id, owner_id, name, trade, phone, email, rate, notes, rating, preferred
+Has many MaintenanceRequests assigned
+Expense
+id, property_id, amount, date, category, payee, notes, receipt_url, maintenance_request_id (nullable)
+Belongs to Property
+Message
+id, thread_id, sender_type (owner/tenant), sender_id, body, read_at, created_at
+Belongs to Thread (per unit)
+
+7. User Stories
+Owner
+	•	As an owner, I want to see all my properties and their rent payment status on one screen when I log in so I don't have to check Zelle, text messages, and a spreadsheet separately.
+	•	As an owner, I want to be notified immediately when a tenant submits an emergency maintenance request so I can respond the same day.
+	•	As an owner, I want to assign a maintenance request to a plumber in my vendor list and have them automatically emailed a work order so I don't have to make a phone call.
+	•	As an owner, I want to see the lease expiration dates for all my tenants 90 days in advance so I can start renewal conversations before they become urgent.
+	•	As an owner, I want to see which of my 15 properties made the most money this year and which ones are costing me the most in repairs.
+	•	As an owner, I want to export all income and expenses for a property to give to my accountant in January without spending a weekend digging through records.
+
+Tenant
+	•	As a tenant, I want to pay my rent online and get an instant confirmation so I never have to wonder if my payment went through.
+	•	As a tenant, I want to submit a repair request with photos from my phone so my landlord can see exactly what the problem looks like.
+	•	As a tenant, I want to receive a notification when my repair request status changes so I don't have to follow up repeatedly.
+	•	As a tenant, I want to message my landlord through the portal so I don't have to text their personal number for non-emergency things.
+	•	As a tenant, I want to see when my lease expires so I can plan accordingly.
+
+Vendor
+	•	As a vendor, I want to receive a clear work order by email and SMS that includes the address, the issue description, photos, and the tenant's contact info so I can show up prepared.
+
+8. Business Model
+
+Tier
+Price
+Properties
+Key Features
+Starter
+$29/mo
+Up to 5 units
+Rent collection, maintenance requests, tenant profiles, vehicle records, basic messaging
+Growth
+$59/mo
+Up to 20 units
+Everything in Starter + lease management, vendor directory, expense ledger, digital signatures, recurring maintenance, broadcast messaging
+Portfolio
+$99/mo
+Up to 50 units
+Everything in Growth + financial reports, CSV export, daily digest email, priority support, multi-property batch actions
+
+Payment processing fees: ACH bank transfer 0.8% (capped at $5). Debit/credit card 2.9% + $0.30. Owner-configurable whether fee is passed to tenant or absorbed. E-signature credits included in Growth and Portfolio tiers; Starter pays per-signature.
+
+Benchmark: TurboTenant charges $10.75/unit/month for their premium plan. Avail charges $7/unit/month. Groundwork at $59/month for 20 units is $2.95/unit — priced as a clear value relative to alternatives, with meaningfully more feature depth.
+
+9. Out of Scope — V1
+	•	Tenant screening — background and credit checks. A natural V2 add-on via TransUnion SmartMove or similar API. V1 focuses on active tenants, not applicants.
+	•	Vacancy and listing management — advertising units on Zillow, Apartments.com. V1 manages occupied units; listing integration is V2.
+	•	Full accounting / bookkeeping — Groundwork tracks income and expenses but does not replace QuickBooks or do bank reconciliation. It produces clean data that accountants can work with.
+	•	Mortgage and insurance tracking — owners can note mortgage payment amounts but Groundwork does not connect to lenders or insurance providers.
+	•	Multi-owner / property management company features — V1 is single-owner. A PM company managing properties on behalf of multiple owners is a separate product track.
+	•	Native iOS and Android apps — web-first in V1. Mobile-responsive tenant portal covers the majority of tenant use cases. Native apps are V2.
+
+10. Risks & Mitigations
+
+Risk
+Likelihood
+Impact
+Mitigation
+Owner adoption friction — setting up 15 properties and 15 tenant profiles is a one-time burden that creates drop-off
+High
+High
+Guided onboarding wizard. Bulk import via CSV for existing tenant data. Concierge onboarding call for Growth/Portfolio tier. Partial setup is still useful — even one property live is value delivered.
+Tenant adoption friction — tenants resistant to using a portal instead of texting
+Medium
+Medium
+Owner sends a move-in welcome email with portal link from inside the platform. Portal requires no account creation — tenants log in via a magic link sent to their email. Frictionless first login.
+Payment disputes — tenant claims they paid, system shows no record
+Low
+High
+Stripe payment receipts serve as authoritative record. All payment events logged with Stripe payment ID. Owner can manually mark a payment as received (e.g., for cash rent) with a note.
+Maintenance photo storage costs escalating at scale
+Medium
+Low
+S3 costs are low at small scale. Compress photos on upload (max 2MB per photo after compression). Automatically archive photos for requests closed more than 2 years ago to cold storage (S3 Glacier).
+E-signature legal validity varies by state
+Low
+Medium
+Use DocuSign or HelloSign — both comply with ESIGN Act (federal) and UETA (state). Display a disclaimer that owners should verify e-signature requirements for their specific jurisdiction.
+Data privacy breach exposing tenant PII
+Low
+Critical
+AES-256 encryption, TLS 1.3, role-based access, no raw payment data stored, annual security review, SOC 2 Type II as a Year 2 certification target.
+
+11. Open Questions
+	•	Rent collection float: When a tenant pays via ACH, Stripe holds funds for 2 business days before payout. Is this acceptable, or do owners need same-day or next-day payout? Stripe Instant Payout is available at a 1% fee — should this be the default or an option?
+	•	Vendor portal: Should vendors get their own lightweight login to view and update work orders, or is email/SMS notification sufficient for V1?
+	•	Utility tracking: Several small landlords pay utilities on behalf of tenants and bill them back. Should Groundwork support utility expense tracking and tenant billing for utilities, or is this out of scope?
+	•	Inspection reports: The move-in/move-out checklist is a critical legal document. Should it support a structured checklist format (room by room, condition ratings) or is a freeform notes + photos approach sufficient for V1?
+	•	Multi-unit properties: A property with 4 units is one property address but 4 tenant relationships. The data model supports this via the Unit entity, but the onboarding flow needs to handle both single-unit and multi-unit properties gracefully.
+
+The Right Tool for the Right Scale
+Enterprise property management software solves problems at 500 units. Spreadsheets and text messages break at 15. Groundwork is built for the gap — the independent landlord who has enough properties to need real infrastructure and few enough that the infrastructure should feel simple. Every feature in this document earns its place by solving a problem that actually costs a 15-property landlord time, money, or sleep.
+
+This document is a working draft. Pricing, technical stack, and feature scope are subject to revision. Nothing herein constitutes legal advice on landlord-tenant law, which varies by jurisdiction.
