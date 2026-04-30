@@ -10,6 +10,8 @@ const NAV_LINKS = [
 	{ href: "/dashboard", label: "Overview" },
 	{ href: "/properties", label: "Properties" },
 	{ href: "/tenants", label: "Tenants" },
+	{ href: "/payments", label: "Payments" },
+	{ href: "/maintenance", label: "Maintenance" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

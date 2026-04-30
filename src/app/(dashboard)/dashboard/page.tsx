@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, inArray, lte } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -6,7 +6,7 @@ import { LeaseBadge } from "@/components/tenants/lease-badge";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { leases, owners, properties, units } from "@/lib/db/schema";
+import { leases, maintenanceRequests, owners, payments, properties, tenants, units } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +43,38 @@ export default async function DashboardPage() {
 	);
 	const vacantUnits = totalUnits - occupiedUnits;
 	const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+	const today = new Date().toISOString().split("T")[0];
+	const ownerUnits = allProperties.flatMap((property) => property.units);
+	const unitIds = ownerUnits.map((unit) => unit.id);
+
+	const ownerTenants = await db.query.tenants.findMany({
+		where: eq(tenants.ownerId, owner.id),
+		columns: { id: true },
+	});
+	const tenantIds = ownerTenants.map((tenant) => tenant.id);
+
+	const ownerPayments =
+		tenantIds.length > 0
+			? await db.query.payments.findMany({
+					where: inArray(payments.tenantId, tenantIds),
+					columns: { dueDate: true, status: true },
+				})
+			: [];
+
+	const overduePayments = ownerPayments.filter(
+		(payment) =>
+			payment.status === "late" || (payment.status === "pending" && payment.dueDate < today),
+	).length;
+
+	const ownerMaintenanceRequests =
+		unitIds.length > 0
+			? await db.query.maintenanceRequests.findMany({
+					where: inArray(maintenanceRequests.unitId, unitIds),
+					columns: { status: true },
+				})
+			: [];
+
+	const openIssues = ownerMaintenanceRequests.filter((request) => request.status !== "resolved").length;
 
 	const in60Days = new Date();
 	in60Days.setDate(in60Days.getDate() + 60);
@@ -65,11 +97,13 @@ export default async function DashboardPage() {
 				<p className="text-muted-foreground mt-1">Your portfolio at a glance</p>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
 				<StatCard label="Properties" value={totalProperties} />
 				<StatCard label="Total Units" value={totalUnits} />
 				<StatCard label="Occupied" value={occupiedUnits} subtitle={`${occupancyRate}% occupancy`} />
 				<StatCard label="Vacant" value={vacantUnits} />
+				<StatCard label="Overdue" value={overduePayments} />
+				<StatCard label="Open Issues" value={openIssues} />
 			</div>
 
 			{totalProperties === 0 && (

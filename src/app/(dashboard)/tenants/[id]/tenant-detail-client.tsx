@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PaymentList } from "@/components/payments/payment-list";
 import { LeaseBadge } from "@/components/tenants/lease-badge";
 import { LeaseForm } from "@/components/tenants/lease-form";
 import { TenantForm } from "@/components/tenants/tenant-form";
@@ -176,6 +177,14 @@ export function TenantDetailClient({ tenantId }: TenantDetailClientProps) {
 			</div>
 
 			<VehicleList tenantId={tenant.id} vehicles={tenant.vehicles} onMutate={fetchTenant} />
+			{tenant.unit && (
+				<PaymentList
+					tenantId={tenant.id}
+					unitId={tenant.unit.id}
+					payments={tenant.payments}
+					onMutate={fetchTenant}
+				/>
+			)}
 
 			{editOpen && (
 				<TenantForm

@@ -77,5 +77,17 @@ export interface PropertyWithUnits extends Property {
 export interface TenantWithDetails extends Tenant {
 	vehicles: Vehicle[];
 	leases: Lease[];
+	payments: Payment[];
 	unit?: (Unit & { property: Property }) | null;
+}
+
+export interface PaymentWithDetails extends Payment {
+	tenant: Tenant;
+	unit: Unit & { property: Property };
+}
+
+export interface MaintenanceRequestWithDetails extends MaintenanceRequest {
+	unit: Unit & { property: Property };
+	tenant?: Tenant | null;
+	vendor?: Vendor | null;
 }

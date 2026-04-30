@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 	const { id } = await params;
 	const tenant = await db.query.tenants.findFirst({
 		where: and(eq(tenants.id, id), eq(tenants.ownerId, resolved.owner.id)),
-		with: { vehicles: true, leases: true, unit: { with: { property: true } } },
+		with: { vehicles: true, leases: true, payments: true, unit: { with: { property: true } } },
 	});
 
 	if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
