@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl = "/app" }: { callbackUrl?: string }) {
 	const router = useRouter();
-	const searchParams = useSearchParams();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
@@ -32,7 +31,7 @@ export function LoginForm() {
 				return;
 			}
 
-			router.push(searchParams.get("callbackUrl") ?? "/app");
+			router.push(callbackUrl);
 		} catch {
 			setError("Something went wrong. Please try again.");
 			setLoading(false);

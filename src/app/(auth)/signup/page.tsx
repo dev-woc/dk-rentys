@@ -4,7 +4,13 @@ import { SignupForm } from "@/components/auth/signup-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-export default function SignupPage() {
+export default async function SignupPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+	const { callbackUrl } = await searchParams;
+
 	return (
 		<Card>
 			<CardHeader className="text-center">
@@ -18,7 +24,7 @@ export default function SignupPage() {
 					<span className="text-sm text-muted-foreground">or</span>
 					<Separator className="flex-1" />
 				</div>
-				<SignupForm />
+				<SignupForm callbackUrl={callbackUrl ?? "/app"} />
 				<p className="text-center text-sm text-muted-foreground">
 					Already have an account?{" "}
 					<Link href="/login" className="text-primary underline-offset-4 hover:underline">
