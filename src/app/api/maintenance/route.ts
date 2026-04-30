@@ -1,9 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { maintenanceRequests, properties, units } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { maintenanceRequestSchema } from "@/lib/validations";
 
@@ -12,12 +11,11 @@ export async function GET(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 	const ownerProperties = await db.query.properties.findMany({
-		where: eq(properties.ownerId, owner.id),
+		where: eq(properties.ownerId, resolved.owner.id),
 		with: { units: { columns: { id: true } } },
 	});
 	const unitIds = ownerProperties.flatMap((property) => property.units.map((unit) => unit.id));
@@ -40,10 +38,9 @@ export async function POST(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 	const body = await request.json();
 
 	if (!body.unitId) return NextResponse.json({ error: "unitId is required" }, { status: 400 });
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
 		where: eq(units.id, body.unitId),
 		with: { property: true },
 	});
-	if (!unit || unit.property.ownerId !== owner.id) {
+	if (!unit || unit.property.ownerId !== resolved.owner.id) {
 		return NextResponse.json({ error: "Not found" }, { status: 404 });
 	}
 

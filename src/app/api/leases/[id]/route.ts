@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { leases } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { leaseSchema } from "@/lib/validations";
 
@@ -12,20 +11,18 @@ async function resolveLease(request: NextRequest, leaseId: string) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return { error: "Too many requests", status: 429 };
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return { error: "Unauthorized", status: 401 };
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved) return resolved;
 
 	const lease = await db.query.leases.findFirst({
 		where: eq(leases.id, leaseId),
 		with: { unit: { with: { property: true } } },
 	});
 
-	if (!lease || lease.unit.property.ownerId !== owner.id)
+	if (!lease || lease.unit.property.ownerId !== resolved.owner.id)
 		return { error: "Not found", status: 404 };
 
-	return { lease, owner };
+	return { lease, owner: resolved.owner };
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

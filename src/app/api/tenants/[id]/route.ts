@@ -1,9 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { tenants } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { tenantSchema } from "@/lib/validations";
 
@@ -12,11 +11,9 @@ async function resolveOwner(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return { error: "Too many requests", status: 429 } as const;
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return { error: "Unauthorized", status: 401 } as const;
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
-	return { owner } as const;
+	const resolved = await requireOwner();
+	if ("error" in resolved) return resolved;
+	return { owner: resolved.owner } as const;
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

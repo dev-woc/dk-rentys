@@ -4,21 +4,26 @@ import { redirect } from "next/navigation";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { LeaseBadge } from "@/components/tenants/lease-badge";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/auth/server";
+import { getSessionPrincipal, requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { leases, maintenanceRequests, owners, payments, properties, tenants, units } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-	const { data } = await auth.getSession();
-	if (!data?.user) redirect("/login");
+	const principal = await getSessionPrincipal();
+	if ("error" in principal) redirect("/login");
+	if (principal.tenant && !principal.owner) redirect("/tenant");
 
-	const owner = await db.query.owners.findFirst({
-		where: eq(owners.userId, data.user.id),
+	const resolved = await requireOwner();
+	if ("error" in resolved) redirect("/login");
+	const { owner } = resolved;
+
+	const existingOwner = await db.query.owners.findFirst({
+		where: eq(owners.userId, owner.userId),
 	});
 
-	if (!owner) {
+	if (!existingOwner) {
 		return (
 			<div className="p-8">
 				<h1 className="text-2xl font-bold">Dashboard</h1>
@@ -104,6 +109,20 @@ export default async function DashboardPage() {
 				<StatCard label="Vacant" value={vacantUnits} />
 				<StatCard label="Overdue" value={overduePayments} />
 				<StatCard label="Open Issues" value={openIssues} />
+			</div>
+
+			<div className="rounded-lg border p-4">
+				<div className="flex items-center justify-between gap-4">
+					<div>
+						<h2 className="text-lg font-semibold">Maintenance Requests</h2>
+						<p className="text-sm text-muted-foreground">
+							Review open issues and create new repair requests.
+						</p>
+					</div>
+					<Button asChild>
+						<Link href="/maintenance">Open Maintenance</Link>
+					</Button>
+				</div>
 			</div>
 
 			{totalProperties === 0 && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ interface FormErrors {
 
 export function SignupForm() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -45,7 +46,7 @@ export function SignupForm() {
 				setLoading(false);
 				return;
 			}
-			router.push("/dashboard");
+			router.push(searchParams.get("callbackUrl") ?? "/app");
 		} catch {
 			setErrors({ general: "Something went wrong. Please try again." });
 			setLoading(false);

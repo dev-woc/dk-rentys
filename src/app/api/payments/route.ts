@@ -1,9 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { payments, tenants } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { paymentSchema } from "@/lib/validations";
 
@@ -12,13 +11,12 @@ export async function GET(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 
 	const ownerTenants = await db.query.tenants.findMany({
-		where: eq(tenants.ownerId, owner.id),
+		where: eq(tenants.ownerId, resolved.owner.id),
 		columns: { id: true },
 	});
 	const tenantIds = ownerTenants.map((tenant) => tenant.id);
@@ -41,17 +39,16 @@ export async function POST(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 	const body = await request.json();
 
 	if (!body.tenantId) return NextResponse.json({ error: "tenantId is required" }, { status: 400 });
 	if (!body.unitId) return NextResponse.json({ error: "unitId is required" }, { status: 400 });
 
 	const tenant = await db.query.tenants.findFirst({
-		where: and(eq(tenants.id, body.tenantId), eq(tenants.ownerId, owner.id)),
+		where: and(eq(tenants.id, body.tenantId), eq(tenants.ownerId, resolved.owner.id)),
 	});
 	if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

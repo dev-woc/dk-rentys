@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { vehicles } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { vehicleSchema } from "@/lib/validations";
 
@@ -12,19 +11,18 @@ async function resolveVehicle(request: NextRequest, vehicleId: string) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return { error: "Too many requests", status: 429 };
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return { error: "Unauthorized", status: 401 };
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved) return resolved;
 
 	const vehicle = await db.query.vehicles.findFirst({
 		where: eq(vehicles.id, vehicleId),
 		with: { tenant: true },
 	});
 
-	if (!vehicle || vehicle.tenant.ownerId !== owner.id) return { error: "Not found", status: 404 };
+	if (!vehicle || vehicle.tenant.ownerId !== resolved.owner.id)
+		return { error: "Not found", status: 404 };
 
-	return { vehicle, owner };
+	return { vehicle, owner: resolved.owner };
 }
 
 export async function PUT(

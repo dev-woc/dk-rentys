@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { payments } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { paymentSchema } from "@/lib/validations";
 
@@ -12,20 +11,18 @@ async function resolvePayment(request: NextRequest, paymentId: string) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return { error: "Too many requests", status: 429 } as const;
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return { error: "Unauthorized", status: 401 } as const;
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved) return resolved;
 	const payment = await db.query.payments.findFirst({
 		where: eq(payments.id, paymentId),
 		with: { tenant: true },
 	});
 
-	if (!payment || payment.tenant.ownerId !== owner.id) {
+	if (!payment || payment.tenant.ownerId !== resolved.owner.id) {
 		return { error: "Not found", status: 404 } as const;
 	}
 
-	return { payment, owner } as const;
+	return { payment, owner: resolved.owner } as const;
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -99,6 +99,7 @@ export const tenants = pgTable(
 		ownerId: uuid("owner_id")
 			.notNull()
 			.references(() => owners.id, { onDelete: "cascade" }),
+		authUserId: text("auth_user_id"),
 		unitId: uuid("unit_id").references(() => units.id, { onDelete: "set null" }),
 		fullName: text("full_name").notNull(),
 		dateOfBirth: date("date_of_birth"),
@@ -114,7 +115,11 @@ export const tenants = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(t) => [index("idx_tenants_owner_id").on(t.ownerId), index("idx_tenants_unit_id").on(t.unitId)],
+	(t) => [
+		index("idx_tenants_owner_id").on(t.ownerId),
+		index("idx_tenants_unit_id").on(t.unitId),
+		uniqueIndex("idx_tenants_auth_user_id").on(t.authUserId),
+	],
 );
 
 // ── Vehicles ──────────────────────────────────────────────────────────────────

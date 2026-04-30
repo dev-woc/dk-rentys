@@ -91,3 +91,10 @@ export interface MaintenanceRequestWithDetails extends MaintenanceRequest {
 	tenant?: Tenant | null;
 	vendor?: Vendor | null;
 }
+
+export interface TenantPortalProfile extends Tenant {
+	unit?: (Unit & { property: Property }) | null;
+	leases: Lease[];
+	payments: Payment[];
+	maintenanceRequests: MaintenanceRequestWithDetails[];
+}

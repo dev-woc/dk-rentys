@@ -1,9 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { properties, units } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { unitSchema } from "@/lib/validations";
 
@@ -12,15 +11,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 
 	const { id: propertyId } = await params;
 
 	const property = await db.query.properties.findFirst({
-		where: and(eq(properties.id, propertyId), eq(properties.ownerId, owner.id)),
+		where: and(eq(properties.id, propertyId), eq(properties.ownerId, resolved.owner.id)),
 	});
 	if (!property) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -37,15 +35,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 
 	const { id: propertyId } = await params;
 
 	const property = await db.query.properties.findFirst({
-		where: and(eq(properties.id, propertyId), eq(properties.ownerId, owner.id)),
+		where: and(eq(properties.id, propertyId), eq(properties.ownerId, resolved.owner.id)),
 	});
 	if (!property) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

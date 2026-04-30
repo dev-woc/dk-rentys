@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth/client";
 
 export function LoginForm() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
@@ -31,7 +32,7 @@ export function LoginForm() {
 				return;
 			}
 
-			router.push("/dashboard");
+			router.push(searchParams.get("callbackUrl") ?? "/app");
 		} catch {
 			setError("Something went wrong. Please try again.");
 			setLoading(false);

@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { tenants } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { tenantSchema } from "@/lib/validations";
 
@@ -12,13 +11,12 @@ export async function GET(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 
 	const rows = await db.query.tenants.findMany({
-		where: eq(tenants.ownerId, owner.id),
+		where: eq(tenants.ownerId, resolved.owner.id),
 		with: { unit: { with: { property: true } }, leases: true },
 		orderBy: (t, { asc }) => [asc(t.fullName)],
 	});
@@ -31,10 +29,9 @@ export async function POST(request: NextRequest) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved)
+		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 
 	const body = await request.json();
 	const result = tenantSchema.safeParse(body);
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
 	const [tenant] = await db
 		.insert(tenants)
 		.values({
-			ownerId: owner.id,
+			ownerId: resolved.owner.id,
 			unitId: body.unitId ?? null,
 			fullName: result.data.fullName,
 			phone: result.data.phone,

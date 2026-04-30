@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { units } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { unitSchema } from "@/lib/validations";
 
@@ -18,19 +17,17 @@ async function resolveUnit(
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return { error: "Too many requests", status: 429 };
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return { error: "Unauthorized", status: 401 };
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved) return resolved;
 
 	const unit = await db.query.units.findFirst({
 		where: eq(units.id, unitId),
 		with: { property: true },
 	});
 
-	if (!unit || unit.property.ownerId !== owner.id) return { error: "Not found", status: 404 };
+	if (!unit || unit.property.ownerId !== resolved.owner.id) return { error: "Not found", status: 404 };
 
-	return { unit, owner };
+	return { unit, owner: resolved.owner };
 }
 
 export async function PUT(

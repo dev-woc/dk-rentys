@@ -1,9 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
+import { requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
 import { vendors } from "@/lib/db/schema";
-import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
 import { vendorSchema } from "@/lib/validations";
 
@@ -12,16 +11,14 @@ async function resolveVendor(request: NextRequest, vendorId: string) {
 	const { success } = apiRateLimiter.check(ip);
 	if (!success) return { error: "Too many requests", status: 429 } as const;
 
-	const { data } = await auth.getSession();
-	if (!data?.user) return { error: "Unauthorized", status: 401 } as const;
-
-	const owner = await getOrCreateOwner(data.user.id, data.user.email ?? "", data.user.name ?? "");
+	const resolved = await requireOwner();
+	if ("error" in resolved) return resolved;
 	const vendor = await db.query.vendors.findFirst({
-		where: and(eq(vendors.id, vendorId), eq(vendors.ownerId, owner.id)),
+		where: and(eq(vendors.id, vendorId), eq(vendors.ownerId, resolved.owner.id)),
 	});
 
 	if (!vendor) return { error: "Not found", status: 404 } as const;
-	return { vendor, owner } as const;
+	return { vendor, owner: resolved.owner } as const;
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
