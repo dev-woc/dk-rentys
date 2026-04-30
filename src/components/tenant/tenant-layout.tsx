@@ -55,6 +55,9 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
 						{session?.user && (
 							<span className="text-sm text-muted-foreground">{session.user.name}</span>
 						)}
+						<Button asChild variant="ghost" size="sm">
+							<Link href="/app">Switch Portal</Link>
+						</Button>
 						<Button variant="ghost" size="sm" onClick={handleSignOut}>
 							<LogOut className="mr-2 h-4 w-4" />
 							Sign out
