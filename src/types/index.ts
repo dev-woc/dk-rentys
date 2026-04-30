@@ -67,8 +67,15 @@ export type VendorTrade =
 // ── Composite API response types ───────────────────────────────────────────────
 export interface UnitWithTenants extends Unit {
 	tenants: Tenant[];
+	leases?: Lease[];
 }
 
 export interface PropertyWithUnits extends Property {
 	units: UnitWithTenants[];
+}
+
+export interface TenantWithDetails extends Tenant {
+	vehicles: Vehicle[];
+	leases: Lease[];
+	unit?: (Unit & { property: Property }) | null;
 }

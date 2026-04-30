@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth/client";
 const NAV_LINKS = [
 	{ href: "/dashboard", label: "Overview" },
 	{ href: "/properties", label: "Properties" },
+	{ href: "/tenants", label: "Tenants" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

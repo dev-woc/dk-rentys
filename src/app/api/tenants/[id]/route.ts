@@ -2,10 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { properties } from "@/lib/db/schema";
+import { tenants } from "@/lib/db/schema";
 import { getOrCreateOwner } from "@/lib/owner";
 import { apiRateLimiter } from "@/lib/rate-limit";
-import { propertySchema } from "@/lib/validations";
+import { tenantSchema } from "@/lib/validations";
 
 async function resolveOwner(request: NextRequest) {
 	const ip = request.headers.get("x-forwarded-for") ?? "anonymous";
@@ -25,13 +25,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 		return NextResponse.json({ error: resolved.error }, { status: resolved.status });
 
 	const { id } = await params;
-	const property = await db.query.properties.findFirst({
-		where: and(eq(properties.id, id), eq(properties.ownerId, resolved.owner.id)),
-		with: { units: { with: { tenants: true, leases: true } } },
+	const tenant = await db.query.tenants.findFirst({
+		where: and(eq(tenants.id, id), eq(tenants.ownerId, resolved.owner.id)),
+		with: { vehicles: true, leases: true, unit: { with: { property: true } } },
 	});
 
-	if (!property) return NextResponse.json({ error: "Not found" }, { status: 404 });
-	return NextResponse.json({ property });
+	if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
+	return NextResponse.json({ tenant });
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -41,34 +41,38 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 	const { id } = await params;
 
-	const existing = await db.query.properties.findFirst({
-		where: and(eq(properties.id, id), eq(properties.ownerId, resolved.owner.id)),
+	const existing = await db.query.tenants.findFirst({
+		where: and(eq(tenants.id, id), eq(tenants.ownerId, resolved.owner.id)),
 	});
 	if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
 	const body = await request.json();
-	const result = propertySchema.safeParse(body);
+	const result = tenantSchema.safeParse(body);
 	if (!result.success) {
 		return NextResponse.json({ error: result.error.issues[0]?.message }, { status: 400 });
 	}
 
 	const [updated] = await db
-		.update(properties)
+		.update(tenants)
 		.set({
-			address: result.data.address,
-			city: result.data.city,
-			state: result.data.state,
-			zip: result.data.zip,
-			propertyType: result.data.propertyType,
-			purchaseDate: result.data.purchaseDate ?? null,
-			mortgagePayment: result.data.mortgagePayment?.toString() ?? null,
+			unitId: body.unitId ?? null,
+			fullName: result.data.fullName,
+			phone: result.data.phone,
+			email: result.data.email,
+			moveInDate: result.data.moveInDate ?? null,
+			moveOutDate: body.moveOutDate ?? null,
 			notes: result.data.notes,
+			emergencyContactName: body.emergencyContactName ?? "",
+			emergencyContactRelationship: body.emergencyContactRelationship ?? "",
+			emergencyContactPhone: body.emergencyContactPhone ?? "",
+			emergencyContactEmail: body.emergencyContactEmail ?? "",
+			dateOfBirth: body.dateOfBirth ?? null,
 			updatedAt: new Date(),
 		})
-		.where(eq(properties.id, id))
+		.where(eq(tenants.id, id))
 		.returning();
 
-	return NextResponse.json({ property: updated });
+	return NextResponse.json({ tenant: updated });
 }
 
 export async function DELETE(
@@ -82,8 +86,8 @@ export async function DELETE(
 	const { id } = await params;
 
 	const [deleted] = await db
-		.delete(properties)
-		.where(and(eq(properties.id, id), eq(properties.ownerId, resolved.owner.id)))
+		.delete(tenants)
+		.where(and(eq(tenants.id, id), eq(tenants.ownerId, resolved.owner.id)))
 		.returning();
 
 	if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });

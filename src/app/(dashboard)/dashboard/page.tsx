@@ -1,11 +1,12 @@
-import { eq } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { LeaseBadge } from "@/components/tenants/lease-badge";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { owners, properties } from "@/lib/db/schema";
+import { leases, owners, properties, units } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,7 @@ export default async function DashboardPage() {
 
 	const allProperties = await db.query.properties.findMany({
 		where: eq(properties.ownerId, owner.id),
-		with: {
-			units: {
-				with: { tenants: true },
-			},
-		},
+		with: { units: { with: { tenants: true } } },
 	});
 
 	const totalProperties = allProperties.length;
@@ -46,6 +43,20 @@ export default async function DashboardPage() {
 	);
 	const vacantUnits = totalUnits - occupiedUnits;
 	const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+
+	const in60Days = new Date();
+	in60Days.setDate(in60Days.getDate() + 60);
+
+	const expiringLeases = await db.query.leases.findMany({
+		where: and(
+			eq(leases.status, "active"),
+			lte(leases.endDate, in60Days.toISOString().split("T")[0]),
+		),
+		with: { unit: { with: { property: true } }, tenant: true },
+		orderBy: (l, { asc }) => [asc(l.endDate)],
+	});
+
+	const ownerExpiringLeases = expiringLeases.filter((l) => l.unit.property.ownerId === owner.id);
 
 	return (
 		<div className="p-8 space-y-6">
@@ -67,6 +78,41 @@ export default async function DashboardPage() {
 					<Button asChild className="mt-4">
 						<Link href="/properties">Add Your First Property</Link>
 					</Button>
+				</div>
+			)}
+
+			{ownerExpiringLeases.length > 0 && (
+				<div className="space-y-3">
+					<h2 className="text-lg font-semibold">Leases Expiring Soon</h2>
+					<div className="divide-y rounded-lg border">
+						{ownerExpiringLeases.map((lease) => {
+							const daysLeft = Math.ceil(
+								(new Date(lease.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+							);
+							return (
+								<div key={lease.id} className="flex items-center justify-between px-4 py-3">
+									<div>
+										<Link
+											href={`/tenants/${lease.tenantId}`}
+											className="font-medium hover:underline"
+										>
+											{lease.tenant.fullName}
+										</Link>
+										<p className="text-sm text-muted-foreground">
+											{lease.unit.property.address}
+											{lease.unit.unitNumber ? ` — Unit ${lease.unit.unitNumber}` : ""}
+										</p>
+									</div>
+									<div className="flex items-center gap-3 shrink-0">
+										<span className="text-sm text-muted-foreground">
+											{daysLeft <= 0 ? "Today" : `${daysLeft}d left`}
+										</span>
+										<LeaseBadge lease={lease} />
+									</div>
+								</div>
+							);
+						})}
+					</div>
 				</div>
 			)}
 		</div>
