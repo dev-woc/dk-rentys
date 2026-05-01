@@ -2,10 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PaymentForm } from "@/components/payments/payment-form";
 import { PaymentBadge } from "@/components/payments/payment-badge";
+import { PaymentForm } from "@/components/payments/payment-form";
 import { Button } from "@/components/ui/button";
-import type { PaymentStatus, PaymentWithDetails, PropertyWithUnits, TenantWithDetails } from "@/types";
+import type {
+	PaymentStatus,
+	PaymentWithDetails,
+	PropertyWithUnits,
+	TenantWithDetails,
+} from "@/types";
 
 type PaymentFilter = "all" | PaymentStatus;
 
@@ -117,7 +122,10 @@ export function PaymentsClient() {
 						<div key={payment.id} className="flex items-center justify-between gap-4 px-4 py-3">
 							<div className="space-y-1">
 								<div className="flex flex-wrap items-center gap-2">
-									<Link href={`/tenants/${payment.tenantId}`} className="font-medium hover:underline">
+									<Link
+										href={`/tenants/${payment.tenantId}`}
+										className="font-medium hover:underline"
+									>
 										{payment.tenant.fullName}
 									</Link>
 									<PaymentBadge status={payment.status as PaymentStatus} />

@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 			urgency: result.data.urgency,
 			description: result.data.description,
 			budget: result.data.budget?.toString() ?? null,
+			photos: result.data.photos,
 			status,
 			scheduledDate: body.scheduledDate ?? null,
 			vendorId: body.vendorId ?? null,

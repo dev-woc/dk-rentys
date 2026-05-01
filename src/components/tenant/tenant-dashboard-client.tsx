@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { PaymentBadge } from "@/components/payments/payment-badge";
 import { StatusBadge } from "@/components/maintenance/status-badge";
 import { UrgencyBadge } from "@/components/maintenance/urgency-badge";
+import { PaymentBadge } from "@/components/payments/payment-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
@@ -36,10 +36,13 @@ export function TenantDashboardClient() {
 	}, [fetchTenant]);
 
 	if (loading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
-	if (!tenant) return <div className="p-8 text-sm text-muted-foreground">Tenant account not found.</div>;
+	if (!tenant)
+		return <div className="p-8 text-sm text-muted-foreground">Tenant account not found.</div>;
 
 	const activeLease = tenant.leases.find((lease) => lease.status !== "expired") ?? null;
-	const recentPayments = [...tenant.payments].sort((a, b) => b.dueDate.localeCompare(a.dueDate)).slice(0, 5);
+	const recentPayments = [...tenant.payments]
+		.sort((a, b) => b.dueDate.localeCompare(a.dueDate))
+		.slice(0, 5);
 	const recentRequests = [...tenant.maintenanceRequests]
 		.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 		.slice(0, 4);
@@ -89,7 +92,8 @@ export function TenantDashboardClient() {
 					</CardHeader>
 					<CardContent className="space-y-1 text-sm">
 						<p>
-							<span className="font-medium">History:</span> {tenant.payments.length} recorded payment
+							<span className="font-medium">History:</span> {tenant.payments.length} recorded
+							payment
 							{tenant.payments.length === 1 ? "" : "s"}
 						</p>
 						<p>
@@ -110,17 +114,11 @@ export function TenantDashboardClient() {
 					<CardContent className="space-y-1 text-sm">
 						<p>
 							<span className="font-medium">Open requests:</span>{" "}
-							{
-								tenant.maintenanceRequests.filter((request) => request.status !== "resolved")
-									.length
-							}
+							{tenant.maintenanceRequests.filter((request) => request.status !== "resolved").length}
 						</p>
 						<p>
 							<span className="font-medium">Resolved:</span>{" "}
-							{
-								tenant.maintenanceRequests.filter((request) => request.status === "resolved")
-									.length
-							}
+							{tenant.maintenanceRequests.filter((request) => request.status === "resolved").length}
 						</p>
 					</CardContent>
 				</Card>
@@ -173,6 +171,15 @@ export function TenantDashboardClient() {
 												? `${request.description.slice(0, 90)}…`
 												: request.description}
 										</p>
+										{request.photos[0] && (
+											<a href={request.photos[0]} target="_blank" rel="noreferrer">
+												<img
+													src={request.photos[0]}
+													alt="Maintenance request"
+													className="h-16 w-16 rounded-md border object-cover"
+												/>
+											</a>
+										)}
 									</div>
 								))}
 							</div>

@@ -25,7 +25,8 @@ async function resolveUnit(
 		with: { property: true },
 	});
 
-	if (!unit || unit.property.ownerId !== resolved.owner.id) return { error: "Not found", status: 404 };
+	if (!unit || unit.property.ownerId !== resolved.owner.id)
+		return { error: "Not found", status: 404 };
 
 	return { unit, owner: resolved.owner };
 }

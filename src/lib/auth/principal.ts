@@ -49,7 +49,9 @@ export async function getSessionPrincipal(): Promise<SessionPrincipal | AuthErro
 
 export async function requireOwner({
 	createIfMissing = true,
-}: { createIfMissing?: boolean } = {}): Promise<{ owner: Owner; user: AuthUser } | AuthError> {
+}: {
+	createIfMissing?: boolean;
+} = {}): Promise<{ owner: Owner; user: AuthUser } | AuthError> {
 	const principal = await getSessionPrincipal();
 	if ("error" in principal) return principal;
 

@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
 			urgency: result.data.urgency,
 			description: result.data.description,
 			budget: result.data.budget?.toString() ?? null,
+			photos: result.data.photos,
 			status: "received",
 		})
 		.returning();

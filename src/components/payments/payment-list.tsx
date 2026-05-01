@@ -56,9 +56,7 @@ export function PaymentList({ tenantId, unitId, payments, onMutate }: PaymentLis
 						<div key={payment.id} className="flex items-center justify-between gap-4 px-4 py-3">
 							<div>
 								<div className="flex items-center gap-2">
-									<span className="font-medium">
-										${Number(payment.amount).toLocaleString()}
-									</span>
+									<span className="font-medium">${Number(payment.amount).toLocaleString()}</span>
 									<PaymentBadge status={payment.status as PaymentStatus} />
 								</div>
 								<p className="text-sm text-muted-foreground">
@@ -67,9 +65,7 @@ export function PaymentList({ tenantId, unitId, payments, onMutate }: PaymentLis
 										? ` · Paid ${new Date(payment.paidDate).toLocaleDateString()}`
 										: ""}
 								</p>
-								{payment.notes && (
-									<p className="text-sm text-muted-foreground">{payment.notes}</p>
-								)}
+								{payment.notes && <p className="text-sm text-muted-foreground">{payment.notes}</p>}
 							</div>
 							<div className="flex gap-2">
 								<Button size="sm" variant="outline" onClick={() => setEditPayment(payment)}>

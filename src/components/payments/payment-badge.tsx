@@ -9,13 +9,14 @@ const STATUS_LABELS: Record<PaymentStatus, string> = {
 	failed: "Failed",
 };
 
-const STATUS_VARIANTS: Record<PaymentStatus, "default" | "secondary" | "destructive" | "outline"> = {
-	pending: "secondary",
-	paid: "default",
-	late: "destructive",
-	partial: "outline",
-	failed: "destructive",
-};
+const STATUS_VARIANTS: Record<PaymentStatus, "default" | "secondary" | "destructive" | "outline"> =
+	{
+		pending: "secondary",
+		paid: "default",
+		late: "destructive",
+		partial: "outline",
+		failed: "destructive",
+	};
 
 export function PaymentBadge({ status }: { status: PaymentStatus }) {
 	return <Badge variant={STATUS_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>;

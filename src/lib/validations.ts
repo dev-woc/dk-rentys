@@ -105,6 +105,7 @@ export const maintenanceRequestSchema = z.object({
 	urgency: z.enum(["Emergency", "Urgent", "Routine"]),
 	description: z.string().min(1, "Description is required").max(5000),
 	budget: z.number().nonnegative().optional().nullable(),
+	photos: z.array(z.url("Photo must be a valid URL")).max(8).default([]),
 });
 
 export const maintenanceStatusSchema = z.object({

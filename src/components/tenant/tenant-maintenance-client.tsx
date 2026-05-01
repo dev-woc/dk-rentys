@@ -45,7 +45,8 @@ export function TenantMaintenanceClient() {
 	}, [fetchData]);
 
 	if (loading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
-	if (!tenant) return <div className="p-8 text-sm text-muted-foreground">Tenant account not found.</div>;
+	if (!tenant)
+		return <div className="p-8 text-sm text-muted-foreground">Tenant account not found.</div>;
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6 p-8">
@@ -75,6 +76,19 @@ export function TenantMaintenanceClient() {
 								<span className="font-medium">{request.category}</span>
 							</div>
 							<p className="text-sm text-muted-foreground">{request.description}</p>
+							{request.photos.length > 0 && (
+								<div className="flex flex-wrap gap-2">
+									{request.photos.slice(0, 4).map((photo) => (
+										<a key={photo} href={photo} target="_blank" rel="noreferrer">
+											<img
+												src={photo}
+												alt="Maintenance request"
+												className="h-16 w-16 rounded-md border object-cover"
+											/>
+										</a>
+									))}
+								</div>
+							)}
 							<p className="text-sm text-muted-foreground">
 								Submitted {new Date(request.createdAt).toLocaleDateString()}
 								{request.vendor ? ` · Vendor: ${request.vendor.name}` : ""}

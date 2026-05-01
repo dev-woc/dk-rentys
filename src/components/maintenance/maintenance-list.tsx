@@ -79,6 +79,19 @@ export function MaintenanceList({
 									{request.unit.unitNumber ? ` — Unit ${request.unit.unitNumber}` : ""}
 									{request.tenant ? ` · ${request.tenant.fullName}` : ""}
 								</p>
+								{request.photos.length > 0 && (
+									<div className="flex flex-wrap gap-2 pt-1">
+										{request.photos.slice(0, 3).map((photo) => (
+											<a key={photo} href={photo} target="_blank" rel="noreferrer">
+												<img
+													src={photo}
+													alt="Maintenance request"
+													className="h-14 w-14 rounded-md border object-cover"
+												/>
+											</a>
+										))}
+									</div>
+								)}
 								<p className="text-sm text-muted-foreground">
 									Opened {new Date(request.createdAt).toLocaleDateString()}
 									{request.resolvedAt

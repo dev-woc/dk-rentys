@@ -73,6 +73,9 @@ export function MaintenanceForm({
 	const [status, setStatus] = useState(request?.status ?? "received");
 	const [category, setCategory] = useState(request?.category ?? "");
 	const [urgency, setUrgency] = useState(request?.urgency ?? "");
+	const [photoUrls, setPhotoUrls] = useState<string[]>(
+		request?.photos?.length ? request.photos : [""],
+	);
 	const isEdit = !!request;
 
 	useEffect(() => {
@@ -83,6 +86,7 @@ export function MaintenanceForm({
 		setStatus(request?.status ?? "received");
 		setCategory(request?.category ?? "");
 		setUrgency(request?.urgency ?? "");
+		setPhotoUrls(request?.photos?.length ? request.photos : [""]);
 	}, [open, request, unitId, unitOptions]);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -98,6 +102,7 @@ export function MaintenanceForm({
 		setLoading(true);
 		const form = e.currentTarget;
 		const fd = new FormData(form);
+		const photos = photoUrls.map((url) => url.trim()).filter(Boolean);
 		const body = {
 			unitId: resolvedUnitId,
 			tenantId: tenantId ?? null,
@@ -105,10 +110,11 @@ export function MaintenanceForm({
 			urgency: fd.get("urgency") as string,
 			description: fd.get("description") as string,
 			budget: fd.get("budget") ? Number(fd.get("budget")) : null,
-			status: isEdit ? ((fd.get("status") as string) || request.status) : undefined,
-			scheduledDate: isEdit ? ((fd.get("scheduledDate") as string) || null) : undefined,
+			photos,
+			status: isEdit ? (fd.get("status") as string) || request.status : undefined,
+			scheduledDate: isEdit ? (fd.get("scheduledDate") as string) || null : undefined,
 			cost: isEdit && fd.get("cost") ? Number(fd.get("cost")) : null,
-			vendorId: isEdit ? ((fd.get("vendorId") as string) || null) : null,
+			vendorId: isEdit ? (fd.get("vendorId") as string) || null : null,
 		};
 
 		try {
@@ -131,6 +137,21 @@ export function MaintenanceForm({
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	function updatePhoto(index: number, value: string) {
+		setPhotoUrls((current) => current.map((url, i) => (i === index ? value : url)));
+	}
+
+	function addPhotoField() {
+		setPhotoUrls((current) => [...current, ""]);
+	}
+
+	function removePhotoField(index: number) {
+		setPhotoUrls((current) => {
+			const next = current.filter((_, i) => i !== index);
+			return next.length > 0 ? next : [""];
+		});
 	}
 
 	return (
@@ -213,6 +234,51 @@ export function MaintenanceForm({
 							defaultValue={request?.budget ? Number(request.budget) : ""}
 							placeholder="Optional"
 						/>
+					</div>
+
+					<div className="space-y-3">
+						<div className="flex items-center justify-between">
+							<Label>Photos</Label>
+							<Button type="button" variant="outline" size="sm" onClick={addPhotoField}>
+								Add Photo URL
+							</Button>
+						</div>
+						<div className="space-y-2">
+							{photoUrls.map((url, index) => (
+								<div key={`${index}-${url}`} className="flex gap-2">
+									<Input
+										type="url"
+										value={url}
+										onChange={(e) => updatePhoto(index, e.target.value)}
+										placeholder="https://example.com/photo.jpg"
+									/>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() => removePhotoField(index)}
+										disabled={photoUrls.length === 1 && !url}
+									>
+										Remove
+									</Button>
+								</div>
+							))}
+						</div>
+						{photoUrls.some((url) => url.trim()) && (
+							<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+								{photoUrls
+									.map((url) => url.trim())
+									.filter(Boolean)
+									.map((url) => (
+										<img
+											key={url}
+											src={url}
+											alt="Maintenance request"
+											className="h-24 w-full rounded-md border object-cover"
+										/>
+									))}
+							</div>
+						)}
 					</div>
 
 					{isEdit && (

@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { VendorForm } from "@/components/vendors/vendor-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { VendorForm } from "@/components/vendors/vendor-form";
 import type { Vendor } from "@/types";
 
 export function VendorsClient() {

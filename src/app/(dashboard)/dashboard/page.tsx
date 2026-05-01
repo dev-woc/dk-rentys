@@ -6,7 +6,15 @@ import { LeaseBadge } from "@/components/tenants/lease-badge";
 import { Button } from "@/components/ui/button";
 import { getSessionPrincipal, requireOwner } from "@/lib/auth/principal";
 import { db } from "@/lib/db";
-import { leases, maintenanceRequests, owners, payments, properties, tenants, units } from "@/lib/db/schema";
+import {
+	leases,
+	maintenanceRequests,
+	owners,
+	payments,
+	properties,
+	tenants,
+	units,
+} from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +87,9 @@ export default async function DashboardPage() {
 				})
 			: [];
 
-	const openIssues = ownerMaintenanceRequests.filter((request) => request.status !== "resolved").length;
+	const openIssues = ownerMaintenanceRequests.filter(
+		(request) => request.status !== "resolved",
+	).length;
 
 	const in60Days = new Date();
 	in60Days.setDate(in60Days.getDate() + 60);

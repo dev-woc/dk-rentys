@@ -104,8 +104,8 @@ export function PaymentForm({
 			dueDate: fd.get("dueDate") as string,
 			method: (fd.get("method") as string) || null,
 			notes: (fd.get("notes") as string) || "",
-			status: isEdit ? ((fd.get("status") as string) || payment.status) : undefined,
-			paidDate: isEdit ? ((fd.get("paidDate") as string) || null) : undefined,
+			status: isEdit ? (fd.get("status") as string) || payment.status : undefined,
+			paidDate: isEdit ? (fd.get("paidDate") as string) || null : undefined,
 			lateFeeAmount: isEdit ? Number(fd.get("lateFeeAmount") || 0) : undefined,
 		};
 
